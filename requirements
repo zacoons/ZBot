@@ -1,6 +1,1 @@
-import discord
-import random
-import re
-import os
-from key import key
-import pickle
+discord
