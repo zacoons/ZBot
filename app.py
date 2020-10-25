@@ -1,3 +1,10 @@
+import discord
+import random
+import re
+import os
+from key import key
+import pickle
+
 client = discord.Client()
 vars = dict()
 warnDataFilename = "warnData.pickle"
