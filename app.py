@@ -132,7 +132,7 @@ async def on_message(message):
 
 @client.event
 async def on_reaction_add(reaction, user):
-    if reaction.message.id == vars['pollIDs'].:
+    if reaction.message.id == vars['pollIDs']:
         if reaction.emoji == '👍':
             await assignRole(vars['pollUpRole'], user)
         if reaction.emoji == '👎':
