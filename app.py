@@ -53,7 +53,7 @@ async def on_message(message):
         'A blind man walks into a bar. And a table. And a chair.',
         'What did one hat say to the other? You stay here. I’ll go on ahead.']
         await message.channel.send(random.choice(responses))
-    
+
     if message.content.startswith('Z smile'):
         await message.channel.send('########################')
         await message.channel.send('#######OO######OO#######')
