@@ -32,7 +32,7 @@ async def on_message(message):
         return
 
     if message.content.startswith('Z help'):
-        await message.channel.send('```Z joke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(@Admins only) Z warn [username]```')
+        await message.channel.send('```Z joke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(@Admins only) Z warn [Username]``````Z clearwarns [Username]``````Z clearallwarns```')
 
     if message.content.startswith('Z joke'):
         responses = ['This is funny so laugh.', 
@@ -85,15 +85,15 @@ async def on_message(message):
             pickle.dump(vars['pollIDs'], file)
 
     if message.content.startswith('Z warn'):
-        helperRole = discord.utils.get(message.author.guild.roles, name="Admin")
-        if helperRole in message.author.roles:
-            bracketsContent = re.findall(r"\[([A-Za-z0-9_ ]+)\]", message.content)
-            userToWarn = message.guild.get_member_named(bracketsContent[0])
+        modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
+        if modRole in message.author.roles:
+            bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
+            member = message.guild.get_member_named(bracketsContent[0])
             
-            if userToWarn != None:
-                if userToWarn.id != client.user.id:
-                    if userToWarn.id != message.guild.owner_id and userToWarn.id:
-                        if userToWarn.id != message.author.id:
+            if member != None:
+                if member.id != client.user.id:
+                    if member.id != message.guild.owner_id and member.id:
+                        if member.id != message.author.id:
                             serverMemberWarns = vars['warnUnpickledData']
                             if str(message.guild) in serverMemberWarns:
                                 members = serverMemberWarns[str(message.guild)]
@@ -101,34 +101,83 @@ async def on_message(message):
                                 members = dict()
                                 serverMemberWarns[str(message.guild)] = members
 
-                            if not str(userToWarn) in members:
-                                members[str(userToWarn)] = 0
+                            if not str(member) in members:
+                                members[str(member)] = 0
 
-                            serverMemberWarns[str(message.guild)][str(userToWarn)] += 1
-                            # vars['warnUnpickledData'] = serverMemberWarns
-                            print(serverMemberWarns)
+                            members[str(member)] += 1
 
-                            if serverMemberWarns[str(message.guild)][str(userToWarn)] == 4 and userToWarn.id != message.guild.owner_id:
-                                await userToWarn.kick(reason=None)
+                            if members[str(member)] >= 3 and member.id != message.guild.owner_id:
                                 try:
-                                    await userToWarn.send("Too many warns and you were kicked from the server! If you wish to rejoin please read the rules again.")
+                                    await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe reread the rules.")
                                 except:
                                     pass
+                                members[str(member)] = 0
+                                await member.kick(reason=None)
                             else:
-                                await message.channel.send(userToWarn.mention + ' you have been warned! ' + str(members[str(userToWarn)]) + "/3")
+                                await message.channel.send(member.mention + ' you have been warned! ' + str(members[str(member)]) + "/3")
                             
                             with open(warnDataFilename, "wb") as file:
+                                print(vars['warnUnpickledData'])
                                 pickle.dump(vars['warnUnpickledData'], file)
                         else:
                             await message.channel.send("That's you dumb dumb!")
                     else:
-                        await message.channel.send("He is the owner, he wouldn't break his own rules so he is immune!")
+                        await message.channel.send(member.name + " is the owner, he wouldn't break his own rules so he is immune!")
                 else:
-                    await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the admin.")
+                    await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner.")
             else:
-                await message.channel.send("He doesn't exist bro.")
+                await message.channel.send(member.name + " doesn't exist bro.")
         else:
             await message.channel.send("You don't have permission to do that.")
+
+    if message.content.startswith('Z clearwarns'):
+        bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
+        member = message.guild.get_member_named(bracketsContent[0])
+        serverMemberWarns = vars['warnUnpickledData']
+
+        if str(message.guild) in serverMemberWarns:
+            members = serverMemberWarns[str(message.guild)]
+        else:
+            members = dict()
+            serverMemberWarns[str(message.guild)] = members
+        
+        if serverMemberWarns[str(message.guild)] == None:
+            return
+
+        if members[str(member)] == None:
+            return
+
+        if member == None:
+            await message.channel.send((str(member) + "isn't a member exist bro."))
+            return
+
+        members[str(member)] = 0
+        await message.channel.send(("Cleared " + member.name + "'s warns."))
+
+        with open(warnDataFilename, "wb") as file:
+            pickle.dump(vars['warnUnpickledData'], file)
+
+    if message.content.startswith('Z clearallwarns'):
+        serverMemberWarns = vars['warnUnpickledData']
+
+        if str(message.guild) in serverMemberWarns:
+            members = serverMemberWarns[str(message.guild)]
+        else:
+            members = dict()
+            serverMemberWarns[str(message.guild)] = members
+        
+        if serverMemberWarns[str(message.guild)] == None:
+            return
+
+        for member in members:
+            if members[member] == None:
+                return
+            members[member] = 0
+        
+        await message.channel.send("Everyone is now free of their warns.")
+
+        with open(warnDataFilename, "wb") as file:
+            pickle.dump(vars['warnUnpickledData'], file)
 
 @client.event
 async def on_reaction_add(reaction, user):
