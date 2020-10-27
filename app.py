@@ -18,23 +18,23 @@ class PollData:
         self.pollUpRole = pollUpRole
         self.pollDownRole = pollDownRole
 
+def TryLoadSavedDict(filename):
+    if os.path.isfile(filename):
+        with open(filename, "rb") as file:
+            return pickle.load(file)
+    else:
+        return dict()
+
 @client.event
 async def on_ready():
     global pollUnpickledData
     global warnUnpickledData
+
     print('We have logged in as {0.user}'.format(client))
     
-    if os.path.isfile(pollDataFilename):
-        with open(pollDataFilename, "rb") as file:
-            pollUnpickledData = pickle.load(file)
-    else:
-        pollUnpickledData = dict()
+    pollUnpickledData = TryLoadSavedDict(pollDataFilename)
 
-    if os.path.isfile(warnDataFilename):
-        with open(warnDataFilename, "rb") as file:
-            warnUnpickledData = pickle.load(file)
-    else:
-        warnUnpickledData = dict()
+    warnUnpickledData = TryLoadSavedDict(warnDataFilename)
 
 @client.event
 async def on_message(message):
@@ -45,13 +45,16 @@ async def on_message(message):
         await message.channel.send('```Z joke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
     if message.content.startswith('Z joke'):
-        responses = ['This is funny so laugh.', 
-        'My dog used to chase people on a bike a lot. It got so bad, finally I had to take his bike away.',
-        'I’m so good at sleeping. I can do it with my eyes closed.',
-        'When you look really closely, all mirrors look like eyeballs.',
-        'I couldn’t figure out why the baseball kept getting larger. Then it hit me.',
+        responses = [
+        "I'm so good at sleeping. I can do it with my eyes closed.",
+        "I couldn't figure out why the baseball kept getting larger. Then it hit me.",
         'A blind man walks into a bar. And a table. And a chair.',
-        'What did one hat say to the other? You stay here. I’ll go on ahead.']
+        "What did one hat say to the other? You stay here. I'll go on ahead.",
+        'One day there was a potato.',
+        'Hey! I invented a new word: plagiarism.',
+        "Did you hear about the mathematician who was afraid of negative numbers? He'd stop at nothing to avoid them",
+        "Why don't scientists trust atoms? They just make up everything."
+        ]
         await message.channel.send(random.choice(responses))
 
     if message.content.startswith('Z smile'):
