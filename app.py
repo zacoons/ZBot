@@ -4,8 +4,10 @@ import re
 import os
 from key import key
 import pickle
+import praw
 
 client = discord.Client()
+reddit = praw.Reddit(client_id='9B_9EgNR0RblQQ', client_secret='de1ze7ZZ9q7GajWI5ZYkXv451vQ', user_agent='ZBot_v1')
 vars = dict()
 pollUnpickledData = dict()
 warnUnpickledData = dict()
@@ -57,6 +59,14 @@ async def on_message(message):
         ]
         await message.channel.send(random.choice(responses))
 
+    if message.content.startswith('Z meme'):
+        meme_submissions = reddit.subreddit('memes').hot()
+        post_to_pick = random.randint(1, 25)
+        for i in range(0, post_to_pick):
+            submission = next(x for x in meme_submissions if not x.stickied)
+
+        await message.channel.send(submission.url)
+
     if message.content.startswith('Z smile'):
         await message.channel.send('########################')
         await message.channel.send('#######OO######OO#######')
@@ -77,8 +87,6 @@ async def on_message(message):
             pollUnpickledData[str(message.guild)] = serverData
             serverPolls = serverData
 
-        await message.channel.purge(limit=1)
-        
         bracketsContent = re.findall(r"\[([A-Za-z0-9_ ]+)\]", message.content)
 
         pollUpRoleName = bracketsContent[0]
