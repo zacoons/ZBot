@@ -60,7 +60,7 @@ async def on_message(message):
         await message.channel.send(random.choice(responses))
 
     if message.content.startswith('Z meme'):
-        meme_submissions = reddit.subreddit('memes').hot()
+        meme_submissions = reddit.subreddit('meme').hot()
         post_to_pick = random.randint(1, 25)
         for i in range(0, post_to_pick):
             submission = next(x for x in meme_submissions if not x.stickied)
