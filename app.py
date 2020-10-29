@@ -3,6 +3,7 @@ import random
 import re
 import os
 from key import key
+from jokes import jokes
 import pickle
 import praw
 
@@ -47,17 +48,7 @@ async def on_message(message):
         await message.channel.send('```Z joke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
     if message.content.startswith('Z joke'):
-        responses = [
-        "I'm so good at sleeping. I can do it with my eyes closed.",
-        "I couldn't figure out why the baseball kept getting larger. Then it hit me.",
-        'A blind man walks into a bar. And a table. And a chair.',
-        "What did one hat say to the other? You stay here. I'll go on ahead.",
-        'One day there was a potato.',
-        'Hey! I invented a new word: plagiarism.',
-        "Did you hear about the mathematician who was afraid of negative numbers? He'd stop at nothing to avoid them",
-        "Why don't scientists trust atoms? They just make up everything."
-        ]
-        await message.channel.send(random.choice(responses))
+        await message.channel.send(random.choice(jokes))
 
     if message.content.startswith('Z meme'):
         meme_submissions = reddit.subreddit('meme').hot()
