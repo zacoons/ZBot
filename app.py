@@ -4,6 +4,7 @@ import re
 import os
 from key import key
 from jokes import jokes
+import pyjokes
 import pickle
 import praw
 
@@ -33,7 +34,7 @@ async def on_ready():
     global pollUnpickledData
     global warnUnpickledData
 
-    print('We have logged in as {0.user}'.format(client))
+    print('Logged in as {0.user}'.format(client))
     
     pollUnpickledData = TryLoadSavedDict(pollDataFilename)
 
@@ -45,10 +46,13 @@ async def on_message(message):
         return
 
     if message.content.startswith('Z help'):
-        await message.channel.send('```Z joke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
+        await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
-    if message.content.startswith('Z joke'):
+    if message.content.startswith('Z normaljoke'):
         await message.channel.send(random.choice(jokes))
+
+    if message.content.startswith('Z codejoke'):
+        await message.channel.send(pyjokes.get_joke())
 
     if message.content.startswith('Z meme'):
         meme_submissions = reddit.subreddit('meme').hot()
@@ -140,7 +144,7 @@ async def on_message(message):
                 else:
                     await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner.")
             else:
-                await message.channel.send(member.name + " doesn't exist bro.")
+                await message.channel.send(bracketsContent[0] + " doesn't exist bro.")
         else:
             await message.channel.send("You don't have permission to do that.")
 
@@ -222,10 +226,6 @@ async def on_reaction_remove(reaction, user):
             await removeRole(pollUpRole, user)
         if reaction.emoji == '👎':
             await removeRole(pollDownRole, user)
-    # if reaction.emoji == '👍':
-    #     await user.remove_roles(discord.utils.get(user.guild.roles, name='Puppy lover'), reason=None, atomic=False)
-    # if reaction.emoji == '👎':
-    #     await user.remove_roles(discord.utils.get(user.guild.roles, name='Cat lover'), reason=None, atomic=False)
 
 async def assignRole(role, user):
     await user.add_roles(role, reason=None, atomic=False)
