@@ -6,5 +6,9 @@ jokes = [
         'One day there was a potato.',
         'Hey! I invented a new word: plagiarism.',
         "Did you hear about the mathematician who was afraid of negative numbers? He'd stop at nothing to avoid them",
-        "Why don't scientists trust atoms? They just make up everything."
+        "Why don't scientists trust atoms? They just make up everything.",
+        "Why did the gym close down? It just didn't work out!",
+        "Two artists had an art contest. It ended in a draw!",
+        "What did one plate say to his friend? Tonight, dinner's on me!",
+        "It's cleaning day so naturally, I've already polished off a whole chocolate bar.",
         ]
