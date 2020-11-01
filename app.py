@@ -1,4 +1,5 @@
 import discord
+from discord.ext.commands import Bot
 import random
 import re
 import os
@@ -8,7 +9,7 @@ import pyjokes
 import pickle
 import praw
 
-client = discord.Client()
+client = Bot(command_prefix="Z ")
 reddit = praw.Reddit(client_id='9B_9EgNR0RblQQ', client_secret='de1ze7ZZ9q7GajWI5ZYkXv451vQ', user_agent='ZBot_v1')
 vars = dict()
 pollUnpickledData = dict()
@@ -48,7 +49,7 @@ async def on_message(message):
     if message.content.startswith('Z help'):
         await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
-    if message.content.startswith('Z normaljoke'):
+    if message.content.startswith('Z joke'):
         await message.channel.send(random.choice(jokes))
 
     if message.content.startswith('Z codejoke'):
