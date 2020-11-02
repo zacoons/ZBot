@@ -46,16 +46,25 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('Z help'):
-        await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
+    if message.content.lower().startswith == ('z help'):
+        embedVar = discord.Embed(title="Commands", description="", color=0x07a0c3)
+        embedVar.add_field(name="z meme", value="Fetches a meme from reddit", inline=False)
+        embedVar.add_field(name="z joke", value="Send you a normal joke", inline=False)
+        embedVar.add_field(name="z codejoke", value="Sends you a programmer joke", inline=False)
+        embedVar.add_field(name="z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]", value="Sets a poll, the variables you set determine the content of the poll", inline=False)
+        embedVar.add_field(name="z warn [Username]", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
+        embedVar.add_field(name="z clearwarns [Username]", value="(Moderators only) Clears a member's warns", inline=False)
+        embedVar.add_field(name="z clearallwarns", value="(Moderators only) Clears everyone's warns", inline=False)
+        await message.channel.send(embed=embedVar)
+        # await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
-    if message.content.startswith('Z joke'):
+    if message.content.lower().startswith == ('z joke'):
         await message.channel.send(random.choice(jokes))
 
-    if message.content.startswith('Z codejoke'):
+    if message.content.lower().startswith == ('z codejoke'):
         await message.channel.send(pyjokes.get_joke())
 
-    if message.content.startswith('Z meme'):
+    if message.content.lower().startswith == ('z meme'):
         meme_submissions = reddit.subreddit('meme').hot()
         post_to_pick = random.randint(1, 25)
         for i in range(0, post_to_pick):
@@ -63,19 +72,7 @@ async def on_message(message):
 
         await message.channel.send(submission.url)
 
-    if message.content.startswith('Z smile'):
-        await message.channel.send('########################')
-        await message.channel.send('#######OO######OO#######')
-        await message.channel.send('#######OO######OO#######')
-        await message.channel.send('########################')
-        await message.channel.send('########################')
-        await message.channel.send('#######OO######OO#######')
-        await message.channel.send('#######OO######OO#######')
-        await message.channel.send('#########OOOOOO########')
-        await message.channel.send('#########OOOOOO########')
-        await message.channel.send('########################')
-
-    if message.content.startswith('Z poll'):
+    if message.content.lower().startswith('z poll'):
         if str(message.guild) in pollUnpickledData:
             serverPolls = pollUnpickledData[str(message.guild)]
         else:
@@ -97,14 +94,14 @@ async def on_message(message):
             await message.channel.send(pollDownRoleName + " isn't a role my dude")
             return
 
-        cntnt = bracketsContent[2] + ' ```React with a thumbs up or a thumbs down to vote!```'
-        msg = await message.channel.send(cntnt)
+        embedVar = discord.Embed(title=bracketsContent[2], description="React with a thumbs up or thumbs down to vote", color=0x07a0c3)
+        msg = await message.channel.send(embed=embedVar)
         serverPolls[str(msg.id)] = PollData(msg.id, pollUpRoleName, pollDownRoleName)
         
         with open(pollDataFilename, "wb") as file:
             pickle.dump(serverPolls, file)
 
-    if message.content.startswith('Z warn'):
+    if message.content.lower().startswith == ('z warn'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
@@ -149,7 +146,7 @@ async def on_message(message):
         else:
             await message.channel.send("You don't have permission to do that.")
 
-    if message.content.startswith('Z clearwarns'):
+    if message.content.lower().startswith == ('z clearwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
@@ -180,7 +177,7 @@ async def on_message(message):
         else:
             await message.channel.send("You don't have permission to do that.")
 
-    if message.content.startswith('Z clearallwarns'):
+    if message.content.lower().startswith == ('z clearallwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             servers = warnUnpickledData
