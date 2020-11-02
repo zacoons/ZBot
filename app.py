@@ -46,7 +46,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.lower().startswith == ('z help'):
+    if message.content.lower().startswith('z help'):
         embedVar = discord.Embed(title="Commands", description="", color=0x07a0c3)
         embedVar.add_field(name="z meme", value="Fetches a meme from reddit", inline=False)
         embedVar.add_field(name="z joke", value="Send you a normal joke", inline=False)
@@ -58,13 +58,13 @@ async def on_message(message):
         await message.channel.send(embed=embedVar)
         # await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
-    if message.content.lower().startswith == ('z joke'):
+    if message.content.lower().startswith('z joke'):
         await message.channel.send(random.choice(jokes))
 
-    if message.content.lower().startswith == ('z codejoke'):
+    if message.content.lower().startswith('z codejoke'):
         await message.channel.send(pyjokes.get_joke())
 
-    if message.content.lower().startswith == ('z meme'):
+    if message.content.lower().startswith('z meme'):
         meme_submissions = reddit.subreddit('meme').hot()
         post_to_pick = random.randint(1, 25)
         for i in range(0, post_to_pick):
@@ -101,7 +101,7 @@ async def on_message(message):
         with open(pollDataFilename, "wb") as file:
             pickle.dump(serverPolls, file)
 
-    if message.content.lower().startswith == ('z warn'):
+    if message.content.lower().startswith('z warn'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
@@ -146,7 +146,7 @@ async def on_message(message):
         else:
             await message.channel.send("You don't have permission to do that.")
 
-    if message.content.lower().startswith == ('z clearwarns'):
+    if message.content.lower().startswith('z clearwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
@@ -170,14 +170,15 @@ async def on_message(message):
                 return
 
             members[str(member)] = 0
-            await message.channel.send(("Cleared " + member.name + "'s warns."))
+            await message.add_reaction('👍')
+            # await message.channel.send(("Cleared " + member.name + "'s warns."))
 
             with open(warnDataFilename, "wb") as file:
                 pickle.dump(warnUnpickledData, file)
         else:
             await message.channel.send("You don't have permission to do that.")
 
-    if message.content.lower().startswith == ('z clearallwarns'):
+    if message.content.lower().startswith('z clearallwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
             servers = warnUnpickledData
@@ -196,7 +197,8 @@ async def on_message(message):
                     return
                 members[member] = 0
             
-            await message.channel.send("Everyone is now free of their warns.")
+            await message.add_reaction('👍')
+            # await message.channel.send("Everyone is now free of their warns.")
 
             with open(warnDataFilename, "wb") as file:
                 pickle.dump(warnUnpickledData, file)
@@ -205,6 +207,9 @@ async def on_message(message):
 
 @client.event
 async def on_reaction_add(reaction, user):
+    if user == client:
+        return
+
     pollMsg = pollUnpickledData[str(reaction.message.guild)][str(reaction.message.id)]
     pollUpRole = discord.utils.get(reaction.message.guild.roles, name=pollMsg.pollUpRole)
     pollDownRole = discord.utils.get(reaction.message.guild.roles, name=pollMsg.pollDownRole)
@@ -216,6 +221,9 @@ async def on_reaction_add(reaction, user):
 
 @client.event
 async def on_reaction_remove(reaction, user):
+    if user == client:
+        return
+
     pollMsg = pollUnpickledData[str(reaction.message.guild)][str(reaction.message.id)]
     pollUpRole = discord.utils.get(reaction.message.guild.roles, name=pollMsg.pollUpRole)
     pollDownRole = discord.utils.get(reaction.message.guild.roles, name=pollMsg.pollDownRole)
