@@ -36,6 +36,7 @@ async def on_ready():
     global warnUnpickledData
 
     print('Logged in as {0.user}'.format(client))
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for Z help'))
     
     pollUnpickledData = TryLoadSavedDict(pollDataFilename)
 
