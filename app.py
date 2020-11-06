@@ -47,8 +47,11 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if 'shipt' in message.content.lower():
-        await warn(message, message.author)
+    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch']
+
+    for swearWord in swearWords:
+        if swearWord in message.content.lower():
+            await warn(message, message.author)
 
     if message.content.lower().startswith('z help'):
         embedVar = discord.Embed(title="Commands", description="", color=0x07a0c3)
