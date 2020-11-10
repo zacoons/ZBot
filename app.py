@@ -47,12 +47,14 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch']
+    #Checks for swear words
+    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
 
     for swearWord in swearWords:
         if swearWord in message.content.lower():
             await warn(message, message.author)
 
+    #Help command
     if message.content.lower().startswith('z help'):
         embedVar = discord.Embed(title="Commands", description="", color=0x07a0c3)
         embedVar.add_field(name="z meme", value="Fetches a meme from reddit", inline=False)
@@ -65,12 +67,15 @@ async def on_message(message):
         await message.channel.send(embed=embedVar)
         # await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
+    #Joke command
     if message.content.lower().startswith('z joke'):
         await message.channel.send(random.choice(jokes))
 
+    #Code joke command
     if message.content.lower().startswith('z codejoke'):
         await message.channel.send(pyjokes.get_joke())
 
+    #Meme command
     if message.content.lower().startswith('z meme'):
         meme_submissions = reddit.subreddit('meme').hot()
         post_to_pick = random.randint(1, 25)
@@ -79,6 +84,7 @@ async def on_message(message):
 
         await message.channel.send(submission.url)
 
+    #Poll command
     if message.content.lower().startswith('z poll'):
         if str(message.guild) in pollUnpickledData:
             serverPolls = pollUnpickledData[str(message.guild)]
@@ -118,18 +124,20 @@ async def on_message(message):
         with open(pollDataFilename, "wb") as file:
             pickle.dump(serverPolls, file)
 
+    #Warn command
     if message.content.lower().startswith('z warn'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
+            bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
+            member = message.guild.get_member_named(bracketsContent[0])
             if member.id != message.author.id:
-                bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
-                member = message.guild.get_member_named(bracketsContent[0])
                 await warn(message, member)
             else:
                 await message.channel.send("That's you dumb dumb")
         else:
             await message.channel.send("You don't have permission to do that")
 
+    #Clear warn (specific user) command
     if message.content.lower().startswith('z clearwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
@@ -162,6 +170,7 @@ async def on_message(message):
         else:
             await message.channel.send("You don't have permission to do that.")
 
+    #Clear everyone's warns command
     if message.content.lower().startswith('z clearallwarns'):
         modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
         if modRole in message.author.roles:
