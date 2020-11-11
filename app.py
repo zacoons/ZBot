@@ -48,11 +48,16 @@ async def on_message(message):
         return
 
     #Checks for swear words
-    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
-
-    for swearWord in swearWords:
-        if swearWord in message.content.lower():
+    msgSwearCheckTxt = message.content.replace(" ", "").lower()
+    swearWords = ['shit', 'fuc', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
+    for word in swearWords:
+        if re.search(word, msgSwearCheckTxt) != None:
             await warn(message, message.author)
+            pass
+
+    # for swearWord in swearWords:
+    #     if swearWord in message.content.lower():
+    #         await warn(message, message.author)
 
     #Help command
     if message.content.lower().startswith('z help'):
@@ -126,21 +131,26 @@ async def on_message(message):
 
     #Warn command
     if message.content.lower().startswith('z warn'):
-        modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
-        if modRole in message.author.roles:
+        isMod = bool(hasModRole(message.author))
+
+        if isMod:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
             member = message.guild.get_member_named(bracketsContent[0])
-            if member.id != message.author.id:
-                await warn(message, member)
+            if member != None:
+                if member.id != message.author.id:
+                    await warn(message, member)
+                else:
+                    await message.channel.send("That's you dumb dumb")
             else:
-                await message.channel.send("That's you dumb dumb")
+                await message.channel.send(str(member) + " isn't a member bro")
         else:
             await message.channel.send("You don't have permission to do that")
 
     #Clear warn (specific user) command
     if message.content.lower().startswith('z clearwarns'):
-        modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
-        if modRole in message.author.roles:
+        isMod = bool(hasModRole(message.author))
+
+        if isMod:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
             member = message.guild.get_member_named(bracketsContent[0])
             servers = warnUnpickledData
@@ -158,7 +168,7 @@ async def on_message(message):
                 return
 
             if member == None:
-                await message.channel.send((str(member) + "isn't a member exist bro."))
+                await message.channel.send((str(member) + "isn't a member bro"))
                 return
 
             members[str(member)] = 0
@@ -172,8 +182,9 @@ async def on_message(message):
 
     #Clear everyone's warns command
     if message.content.lower().startswith('z clearallwarns'):
-        modRole = discord.utils.get(message.author.guild.roles, name="Moderator")
-        if modRole in message.author.roles:
+        isMod = bool(hasModRole(message.author))
+
+        if isMod:
             servers = warnUnpickledData
 
             if str(message.guild) in servers:
@@ -271,5 +282,13 @@ async def warn(message, member):
             await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
     else:
         await message.channel.send(str(member) + " doesn't exist bro")
+
+def hasModRole(author):
+    for role in author.guild.roles:
+        if role.permissions.kick_members:
+            if role in author.roles:
+                return True
+            else:
+                return False
 
 client.run(key)
