@@ -48,7 +48,7 @@ async def on_message(message):
         return
 
     #Checks for swear words
-    msgSwearCheckTxt = message.content.replace(" ", "").lower()
+    msgSwearCheckTxt = message.content.lower()
     swearWords = ['shit', 'fuc', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
     for word in swearWords:
         if re.search(word, msgSwearCheckTxt) != None:
