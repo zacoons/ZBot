@@ -284,11 +284,10 @@ async def warn(message, member):
         await message.channel.send(str(member) + " doesn't exist bro")
 
 def hasModRole(author):
-    for role in author.guild.roles:
+    for role in author.roles:
         if role.permissions.kick_members:
-            if role in author.roles:
-                return True
-            else:
-                return False
+            return True
+        else:
+            return False
 
 client.run(key)
