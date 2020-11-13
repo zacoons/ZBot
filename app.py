@@ -13,15 +13,29 @@ client = Bot(command_prefix="Z ")
 reddit = praw.Reddit(client_id='9B_9EgNR0RblQQ', client_secret='de1ze7ZZ9q7GajWI5ZYkXv451vQ', user_agent='ZBot_v1')
 vars = dict()
 pollUnpickledData = dict()
-warnUnpickledData = dict()
-warnDataFilename = "warnData.pickle"
+memberUnpickledData = dict()
 pollDataFilename = "pollData.pickle"
+memberDataFilename = "memberData.pickle"
 
 class PollData:
     def __init__(self, msgID, pollUpRole, pollDownRole):
         self.msgID = msgID
         self.pollUpRole = pollUpRole
         self.pollDownRole = pollDownRole
+
+class MemberData:
+    def __init__(self, warns, xp, level, rank):
+        self.warns = warns
+        self.xp = xp
+        self.level = level
+        self.rank = rank
+
+# class LevelData:
+#     def __init__(self, channel):
+#         self.warns = warns
+#         self.xp = xp
+#         self.level = level
+#         self.rank = rank
 
 def TryLoadSavedDict(filename):
     if os.path.isfile(filename):
@@ -33,14 +47,14 @@ def TryLoadSavedDict(filename):
 @client.event
 async def on_ready():
     global pollUnpickledData
-    global warnUnpickledData
+    global memberUnpickledData
 
     print('Logged in as {0.user}'.format(client))
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for Z help'))
     
     pollUnpickledData = TryLoadSavedDict(pollDataFilename)
 
-    warnUnpickledData = TryLoadSavedDict(warnDataFilename)
+    memberUnpickledData = TryLoadSavedDict(memberDataFilename)
 
 @client.event
 async def on_message(message):
@@ -54,6 +68,11 @@ async def on_message(message):
         if re.search(word, msgSwearCheckTxt) != None:
             await warn(message, message.author)
             pass
+
+    await giveMemberXP(0.05, message)
+    
+    # for member in members:
+    #     members[str(member)]
 
     # for swearWord in swearWords:
     #     if swearWord in message.content.lower():
@@ -69,6 +88,7 @@ async def on_message(message):
         embedVar.add_field(name="z warn [Username]", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
         embedVar.add_field(name="z clearwarns [Username]", value="(Moderators only) Clears a member's warns", inline=False)
         embedVar.add_field(name="z clearallwarns", value="(Moderators only) Clears everyone's warns", inline=False)
+        embedVar.add_field(name="z level (Optional)[Username]", value="Tells you your/someone else's level and xp")
         await message.channel.send(embed=embedVar)
         # await message.channel.send('```Z meme``````Z joke``````Z codejoke``````Z smile``````Z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]``````(Moderators only) Z warn [Username]``````(Moderators only) Z clearwarns [Username]``````(Moderators only) Z clearallwarns```')
 
@@ -153,7 +173,7 @@ async def on_message(message):
         if isMod:
             bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
             member = message.guild.get_member_named(bracketsContent[0])
-            servers = warnUnpickledData
+            servers = memberUnpickledData
 
             if str(message.guild) in servers:
                 members = servers[str(message.guild)]
@@ -175,8 +195,8 @@ async def on_message(message):
             await message.add_reaction('👍')
             # await message.channel.send(("Cleared " + member.name + "'s warns."))
 
-            with open(warnDataFilename, "wb") as file:
-                pickle.dump(warnUnpickledData, file)
+            with open(memberDataFilename, "wb") as file:
+                pickle.dump(memberUnpickledData, file)
         else:
             await message.channel.send("You don't have permission to do that.")
 
@@ -185,7 +205,7 @@ async def on_message(message):
         isMod = bool(hasModRole(message.author))
 
         if isMod:
-            servers = warnUnpickledData
+            servers = memberUnpickledData
 
             if str(message.guild) in servers:
                 members = servers[str(message.guild)]
@@ -199,15 +219,28 @@ async def on_message(message):
             for member in members:
                 if members[member] == None:
                     return
-                members[member] = 0
+                members[member].warns = 0
             
             await message.add_reaction('👍')
             # await message.channel.send("Everyone is now free of their warns.")
 
-            with open(warnDataFilename, "wb") as file:
-                pickle.dump(warnUnpickledData, file)
+            with open(memberDataFilename, "wb") as file:
+                pickle.dump(memberUnpickledData, file)
         else:
             await message.channel.send("You don't have permission to do that.")
+
+    #Gets the member's level
+    if message.content.lower().startswith('z level'):
+        bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
+        if bracketsContent != []:
+            member = message.guild.get_member_named(bracketsContent[0])
+        else:
+            member = message.author
+
+        await getMemberLevel(message, member)
+
+    # if message.content.lower().startswith('z clearLevels'):
+
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -252,7 +285,7 @@ async def warn(message, member):
     if member != None:
         if member.id != client.user.id:
             if member.id != message.guild.owner_id and member.id:
-                servers = warnUnpickledData
+                servers = memberUnpickledData
                 if str(message.guild) in servers:
                     members = servers[str(message.guild)]
                 else:
@@ -260,22 +293,22 @@ async def warn(message, member):
                     servers[str(message.guild)] = members
 
                 if not str(member) in members:
-                    members[str(member)] = 0
+                    members[str(member)] = MemberData(0, 0, 0, 0)
 
-                members[str(member)] += 1
+                members[str(member)].warns += 1
 
-                if members[str(member)] >= 3 and member.id != message.guild.owner_id:
+                if members[str(member)].warns >= 3 and member.id != message.guild.owner_id:
                     try:
                         await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe reread the rules")
                     except:
                         pass
-                    members[str(member)] = 0
+                    members[str(member)].warns = 0
                     await member.kick(reason=None)
                 else:
-                    await message.channel.send(member.mention + ' you have been warned! ' + str(members[str(member)]) + "/3")
+                    await message.channel.send(member.mention + ' you have been warned! ' + str(members[str(member)].warns) + "/3")
                 
-                with open(warnDataFilename, "wb") as file:
-                    pickle.dump(warnUnpickledData, file)
+                with open(memberDataFilename, "wb") as file:
+                    pickle.dump(memberUnpickledData, file)
             else:
                 await message.channel.send(member.name + " is the owner, he wouldn't break his own rules so he is immune")
         else:
@@ -283,11 +316,72 @@ async def warn(message, member):
     else:
         await message.channel.send(str(member) + " doesn't exist bro")
 
-def hasModRole(author):
-    for role in author.roles:
+def populateMembersDict(message):
+    servers = memberUnpickledData
+    if str(message.guild) in servers:
+        return servers[str(message.guild)]
+    else:
+        servers[str(message.guild)] = dict()
+        return dict()
+async def giveMemberXP(xpAmount, message):
+    members = populateMembersDict(message)
+
+    if not str(message.author) in members:
+        member = MemberData(0, 0, 0, 0)
+    else:
+        member = members[str(message.author)]
+
+    member.xp += xpAmount
+
+    if member.xp >= 1:
+        member.level += 1
+        member.xp = 0
+        await message.channel.send(message.author.mention + " you just got better! You are now level " + str(members[str(message.author)].level))
+
+    setMemberRanks(members, message.guild)
+
+    with open(memberDataFilename, "wb") as file:
+        pickle.dump(memberUnpickledData, file)
+async def getMemberLevel(message, member):
+    members = populateMembersDict(message)
+
+    if message.guild.get_member_named(str(member)) == None:
+        await message.channel.send("That's not a member bro")
+        return None
+
+    if not str(member) in members:
+        members[str(member)] = MemberData(0, 0, 0, 0)
+
+    setMemberRanks(members, message.guild)
+
+    embedVar = discord.Embed(title="", description="", color=0x07a0c3)
+    embedVar.add_field(name="Level", value=str(members[str(member)].level), inline=False)
+    embedVar.add_field(name="XP", value=str(truncate(members[str(member)].xp, decimals=2)), inline=False)
+    embedVar.add_field(name="Rank", value="#" + str(members[str(member)].rank), inline=False)
+    await message.channel.send(embed=embedVar)
+# async def addLevelRole(level, role):
+#     LevelData()
+def setMemberRanks(members, guild):
+    for member in members:
+        members[str(member)].rank = len(members)
+
+        for checkMember in members:
+            if members[str(member)].level > members[str(checkMember)].level:
+                members[str(member)].rank -= 1
+            else:
+                if members[str(member)].level == members[str(checkMember)].level:
+                    if members[str(member)].xp > members[str(checkMember)].xp:
+                        members[str(member)].rank -= 1
+
+# async def setLevelUpChannel()
+
+def hasModRole(member):
+    for role in member.roles:
         if role.permissions.kick_members:
             return True
-        else:
-            return False
+
+def truncate(n, decimals=0):
+    multiplier = 10 ** decimals
+    return int(n * multiplier) / multiplier
 
 client.run(key)
