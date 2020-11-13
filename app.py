@@ -63,13 +63,13 @@ async def on_message(message):
 
     #Checks for swear words
     msgSwearCheckTxt = message.content.lower()
-    swearWords = ['shit', 'fuc', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
+    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
     for word in swearWords:
         if re.search(word, msgSwearCheckTxt) != None:
             await warn(message, message.author)
             pass
 
-    await giveMemberXP(0.05, message)
+    await giveMemberXP(1, message)
     
     # for member in members:
     #     members[str(member)]
@@ -392,7 +392,7 @@ async def giveMemberXP(xpAmount, message):
 
     member.xp += xpAmount
 
-    if member.xp >= 1:
+    if member.xp >= 20:
         member.level += 1
         member.xp = 0
         await message.channel.send(message.author.mention + " you just got better! You are now level " + str(members[str(message.author)].level))
@@ -415,7 +415,7 @@ async def getMemberLevel(message, member):
 
     embedVar = discord.Embed(title="", description="", color=0x07a0c3)
     embedVar.add_field(name="Level", value=str(members[str(member)].level), inline=False)
-    embedVar.add_field(name="XP", value=str(truncate(members[str(member)].xp, decimals=2)), inline=False)
+    embedVar.add_field(name="XP", value=str(truncate(members[str(member)].xp, decimals=0)), inline=False)
     embedVar.add_field(name="Rank", value="#" + str(members[str(member)].rank), inline=False)
     await message.channel.send(embed=embedVar)
 # async def addLevelRole(level, role):
