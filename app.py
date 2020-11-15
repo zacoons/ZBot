@@ -92,6 +92,7 @@ async def helpother(message):
 async def helplevels(message):
     embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
     embedVar.add_field(name="`z level [Username](Optional)`", value="Tells you your/someone else's level and xp", inline=False)
+    embedVar.add_field(name="`z leaderboard`", value="Gives you the rank of all ranked members", inline=False)
     embedVar.add_field(name="`z clearlevels [Username]`", value="(Moderators only) Clears a member's levels and xp", inline=False)
     embedVar.add_field(name="`z clearalllevels`", value="(Moderators only) Clears everyone's levels and xp", inline=False)
     await message.channel.send(embed=embedVar)
@@ -103,8 +104,6 @@ async def joke(message):
 @client.command()
 async def codejoke(message):
     await message.channel.send(pyjokes.get_joke())
-
-
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -170,6 +169,17 @@ async def level(message, member:typing.Optional[discord.Member]):
         member = message.author
 
     await getMemberLevel(message, member)
+
+@client.command(aliases=['lvls', 'lb'])
+async def leaderboard(message):
+    members = populateMembersDict(message)
+
+    embedVar = discord.Embed(title="Leaderboard", description="", color=0x6495ED)
+
+    for member in members:
+        embedVar.add_field(name='#'+str(members[str(member)].rank)+' - '+member, value='level '+str(members[str(member)].level), inline=False)
+
+    await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['clevels', 'clearlvls', 'clvls'])
 @commands.has_permissions(kick_members=True)
@@ -290,64 +300,6 @@ async def on_message(message):
         
         with open(pollDataFilename, "wb") as file:
             pickle.dump(serverPolls, file)
-
-    #Tells the member his level, xp and rank
-    # if message.content.lower().startswith('z level'):
-    #     bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
-    #     if bracketsContent != []:
-    #         member = message.guild.get_member_named(bracketsContent[0])
-    #     else:
-    #         member = message.author
-
-    #     await getMemberLevel(message, member)
-
-    #Clears a member's levels
-    # if message.content.lower().startswith('z clearlevels'):
-    #     isMod = bool(hasModRole(message.author))
-
-    #     if isMod:
-    #         bracketsContent = re.findall(r"\[([A-Za-z0-9_' ]+)\]", message.content)
-    #         member = message.guild.get_member_named(bracketsContent[0])
-
-    #         if member == None:
-    #             await message.channel.send((str(bracketsContent[0]) + " isn't a member bro"))
-    #             return
-
-    #         clearLevels(message, member)
-    #         await message.add_reaction('👍')
-
-    #         with open(memberDataFilename, "wb") as file:
-    #             pickle.dump(memberUnpickledData, file)
-    #     else:
-    #         await message.channel.send("You don't have permission to do that.")
-
-    #Clears everyone's levels
-    # if message.content.lower().startswith('z clearalllevels'):
-    #     isMod = bool(hasModRole(message.author))
-
-    #     if isMod:
-    #         servers = memberUnpickledData
-
-    #         if str(message.guild) in servers:
-    #             members = servers[str(message.guild)]
-    #         else:
-    #             members = dict()
-    #             servers[str(message.guild)] = members
-            
-    #         if servers[str(message.guild)] == None:
-    #             return
-
-    #         for member in members:
-    #             if members[member] == None:
-    #                 return
-    #             clearLevels(message, member)
-            
-    #         await message.add_reaction('👍')
-
-    #         with open(memberDataFilename, "wb") as file:
-    #             pickle.dump(memberUnpickledData, file)
-    #     else:
-    #         await message.channel.send("You don't have permission to do that.")
 
     await client.process_commands(message)
 
@@ -475,9 +427,6 @@ async def getMemberLevel(message, member):
     if message.guild.get_member_named(str(member)) == None:
         await message.channel.send("That's not a member bro")
         return None
-
-    if not str(member) in members:
-        members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
 
     setMemberRanks(message, message.guild)
 
