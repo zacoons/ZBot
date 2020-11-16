@@ -62,25 +62,25 @@ async def on_ready():
 
     memberUnpickledData = TryLoadSavedDict(memberDataFilename)
 
-@client.command(aliases=['h', 'commands', 'c'])
+@client.command()
 async def help(message):
     embedVar = discord.Embed(title="ZBot Help", description="", color=0x6495ED)
-    embedVar.add_field(name="Levels", value="`z helplevels`")
-    embedVar.add_field(name="Moderator", value="`z helpmoderator`")
-    embedVar.add_field(name="Other", value="`z helpother`")
+    embedVar.add_field(name="Levels", value="`z helplvls`")
+    embedVar.add_field(name="Moderator", value="`z helpmod`")
+    embedVar.add_field(name="Other", value="`z helpmisc`")
     await message.channel.send(embed=embedVar)
 
-@client.command(aliases=['helpmod'])
-async def helpmoderator(message):
+@client.command()
+async def helpmod(message):
     embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=0x6495ED)
     embedVar.add_field(name="`z warn [Username]`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
-    embedVar.add_field(name="`z clearwarns [Username]`", value="(Moderators only) Clears a member's warns", inline=False)
-    embedVar.add_field(name="`z clearallwarns`", value="(Moderators only) Clears everyone's warns", inline=False)
+    embedVar.add_field(name="`z pardon [Username]`", value="(Moderators only) Clears a member's warns", inline=False)
+    embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
     embedVar.add_field(name="`z mute [time](Seconds)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)
     await message.channel.send(embed=embedVar)
 
-@client.command(aliases=['helpmisc', 'helpmiscellaneous'])
-async def helpother(message):
+@client.command()
+async def helpmisc(message):
     embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
     embedVar.add_field(name="`z meme`", value="Fetches a meme from reddit", inline=False)
     embedVar.add_field(name="`z joke`", value="Send you a normal joke", inline=False)
@@ -88,13 +88,13 @@ async def helpother(message):
     embedVar.add_field(name="`z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]`", value="Sets a poll, the variables you set determine the content of the poll", inline=False)
     await message.channel.send(embed=embedVar)
 
-@client.command(aliases=['helplvl', 'helplvls'])
-async def helplevels(message):
+@client.command()
+async def helplvls(message):
     embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
-    embedVar.add_field(name="`z level [Username](Optional)`", value="Tells you your/someone else's level and xp", inline=False)
-    embedVar.add_field(name="`z leaderboard`", value="Gives you the rank of all ranked members", inline=False)
-    embedVar.add_field(name="`z clearlevels [Username]`", value="(Moderators only) Clears a member's levels and xp", inline=False)
-    embedVar.add_field(name="`z clearalllevels`", value="(Moderators only) Clears everyone's levels and xp", inline=False)
+    embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
+    embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
+    embedVar.add_field(name="`z clearlevels [Username]`", value="(AKA clvls) (Moderators only) Clears a member's levels and xp", inline=False)
+    embedVar.add_field(name="`z clearalllevels`", value="(AKA calllvls) (Moderators only) Clears everyone's levels and xp", inline=False)
     await message.channel.send(embed=embedVar)
 
 @client.command()
@@ -116,9 +116,9 @@ async def warn(message, member:discord.Member):
     else:
         await message.channel.send(str(member) + " isn't a member bro")
 
-@client.command(aliases=['cwarns', 'pardon'])
+@client.command()
 @commands.has_permissions(kick_members=True)
-async def clearwarns(message, member:discord.Member):
+async def pardon(message, member:discord.Member):
     servers = memberUnpickledData
 
     if str(message.guild) in servers:
@@ -139,9 +139,9 @@ async def clearwarns(message, member:discord.Member):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.command(aliases=['pardonall', 'cawarns'])
+@client.command()
 @commands.has_permissions(kick_members=True)
-async def clearallwarns(message):
+async def pardonall(message):
     servers = memberUnpickledData
 
     if str(message.guild) in servers:
@@ -170,18 +170,19 @@ async def level(message, member:typing.Optional[discord.Member]):
 
     await getMemberLevel(message, member)
 
-@client.command(aliases=['lvls', 'lb'])
-async def leaderboard(message):
+@client.command(aliases=['lvls'])
+async def levels(message):
     members = populateMembersDict(message)
+    sortedMembers = sorted(members.items(), key = lambda kv: kv[1].rank)
 
     embedVar = discord.Embed(title="Leaderboard", description="", color=0x6495ED)
 
-    for member in members:
-        embedVar.add_field(name='#'+str(members[str(member)].rank)+' - '+member, value='level '+str(members[str(member)].level), inline=False)
+    for memberName, data in sortedMembers:
+        embedVar.add_field(name='#'+str(data.rank)+' - '+memberName, value='level '+str(data.level), inline=False)
 
     await message.channel.send(embed=embedVar)
 
-@client.command(aliases=['clevels', 'clearlvls', 'clvls'])
+@client.command(aliases=['clvls'])
 @commands.has_permissions(kick_members=True)
 async def clearlevels(message, member:discord.Member):
     if member == None:
@@ -194,7 +195,7 @@ async def clearlevels(message, member:discord.Member):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.command(aliases=['calevels', 'calvls', 'clearalllvls'])
+@client.command(aliases=['calllvls'])
 @commands.has_permissions(kick_members=True)
 async def clearalllevels(message):
     servers = memberUnpickledData
@@ -218,7 +219,7 @@ async def clearalllevels(message):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.command(aliases=['silence'])
+@client.command()
 @commands.has_permissions(kick_members=True)
 async def mute(message, member:discord.Member, time:int):
     # if member == message.author:
