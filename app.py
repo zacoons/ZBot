@@ -97,6 +97,7 @@ async def helplvls(message):
     embedVar.add_field(name="`z clearalllevels`", value="(AKA calllvls) (Moderators only) Clears everyone's levels and xp", inline=False)
     await message.channel.send(embed=embedVar)
 
+#Misc
 @client.command()
 async def joke(message):
     await message.channel.send(random.choice(jokes))
@@ -105,6 +106,50 @@ async def joke(message):
 async def codejoke(message):
     await message.channel.send(pyjokes.get_joke())
 
+@client.command()
+async def meme(message):
+    meme_submissions = reddit.subreddit('meme').hot()
+    post_to_pick = random.randint(1, 25)
+    for i in range(0, post_to_pick):
+        submission = next(x for x in meme_submissions if not x.stickied)
+
+    await message.channel.send(submission.url)
+
+@client.command()
+async def poll(message, pollUpRoleName:str, pollDownRoleName:str, content:str):
+    if str(message.guild) in pollUnpickledData:
+        serverPolls = pollUnpickledData[str(message.guild)]
+    else:
+        serverData = dict()
+        pollUnpickledData[str(message.guild)] = serverData
+        serverPolls = serverData
+
+    if pollUpRoleName.lower() == "none" and pollDownRoleName.lower() == "none":
+            await message.channel.send("You gotta put in at least one role")
+            return
+
+    if pollUpRoleName.lower() != "none":
+        pollUpRole = discord.utils.get(message.guild.roles, name=pollUpRoleName)
+        if pollUpRole == None: 
+            await message.channel.send(pollUpRoleName + " isn't a role my dude")
+            return
+    
+    if pollDownRoleName.lower() != "none":
+        pollDownRole = discord.utils.get(message.guild.roles, name=pollDownRoleName)
+        if pollDownRole == None:
+            await message.channel.send(pollDownRoleName + " isn't a role my dude")
+            return
+
+    embedVar = discord.Embed(title=content, color=0x6495ED)
+    msg = await message.channel.send(embed=embedVar)
+    await msg.add_reaction('👍')
+    await msg.add_reaction('👎')
+    serverPolls[str(msg.id)] = PollData(msg.id, pollUpRoleName, pollDownRoleName)
+    
+    with open(pollDataFilename, "wb") as file:
+        pickle.dump(serverPolls, file)
+
+#Mod
 @client.command()
 @commands.has_permissions(kick_members=True)
 async def warn(message, member:discord.Member):
@@ -163,6 +208,18 @@ async def pardonall(message):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def mute(message, member:discord.Member, time:int):
+    if member == client.user:
+        await message.channel.send("Why are you trying to mute me")
+        return
+
+    await muteMember(message.guild, member, time)
+
+    await message.message.add_reaction('👍')
+
+#Lvls
 @client.command(aliases=['lvl'])
 async def level(message, member:typing.Optional[discord.Member]):
     if member == None:
@@ -219,23 +276,6 @@ async def clearalllevels(message):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def mute(message, member:discord.Member, time:int):
-    # if member == message.author:
-    #     await message.channel.send("That's you dumb dumb")
-    #     return
-
-    if member == client.user:
-        await message.channel.send("Why are you trying to mute me")
-        return
-
-    # loop = asyncio.get_event_loop()
-    # loop.create_task(muteMember(message.guild, member, time))
-    await muteMember(message.guild, member, time)
-
-    await message.message.add_reaction('👍')
-
 @client.event
 async def on_message(message):
     if message.author == client.user:
@@ -245,62 +285,13 @@ async def on_message(message):
 
     #Checks for swear words
     msgSwearCheckTxt = message.content.lower()
-    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch'] #These are all the swear words I know
+    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch', 'penis', 'vagina'] #These are all the swear words I know
     for word in swearWords:
         if re.search(word, msgSwearCheckTxt) != None:
-            await warn(message, message.author)
-            pass
-
-    #Meme command
-    if message.content.lower().startswith('z meme'):
-        meme_submissions = reddit.subreddit('meme').hot()
-        post_to_pick = random.randint(1, 25)
-        for i in range(0, post_to_pick):
-            submission = next(x for x in meme_submissions if not x.stickied)
-
-        await message.channel.send(submission.url)
-
-    #Poll command
-    if message.content.lower().startswith('z poll'):
-        if str(message.guild) in pollUnpickledData:
-            serverPolls = pollUnpickledData[str(message.guild)]
-        else:
-            serverData = dict()
-            pollUnpickledData[str(message.guild)] = serverData
-            serverPolls = serverData
-
-        bracketsContent = re.findall(r"\[([A-Za-z0-9_?.!' ]+)\]", message.content)
-
-        if bracketsContent[0] == " " and bracketsContent[1] == " ":
-                await message.channel.send("You gotta put in at least one role")
-                return
-
-        pollUpRoleName = None
-        pollUpRole = None
-        if bracketsContent[0] != " ":
-            pollUpRoleName = bracketsContent[0]
-            pollUpRole = discord.utils.get(message.guild.roles, name=pollUpRoleName)
-            if pollUpRole == None: 
-                await message.channel.send(pollUpRoleName + " isn't a role my dude")
-                return
-        
-        pollDownRoleName = None
-        pollDownRole = None
-        if bracketsContent[1] != " ":
-            pollDownRoleName = bracketsContent[1]
-            pollDownRole = discord.utils.get(message.guild.roles, name=pollDownRoleName)
-            if pollDownRole == None:
-                await message.channel.send(pollDownRoleName + " isn't a role my dude")
-                return
-
-        embedVar = discord.Embed(title=bracketsContent[2], color=0x07a0c3)
-        msg = await message.channel.send(embed=embedVar)
-        msg.add_reaction('👍')
-        msg.add_reaction('👎')
-        serverPolls[str(msg.id)] = PollData(msg.id, pollUpRoleName, pollDownRoleName)
-        
-        with open(pollDataFilename, "wb") as file:
-            pickle.dump(serverPolls, file)
+            # await warnMember(message, message.author)
+            await message.delete()
+            await muteMember(message.guild, message.author, 60)
+            return
 
     await client.process_commands(message)
 
@@ -400,22 +391,20 @@ def populateMembersDict(message):
         return servers[str(message.guild)]
     else:
         servers[str(message.guild)] = dict()
-        return dict()
+        return servers[str(message.guild)]
 async def giveMemberXP(xpAmount, message):
     members = populateMembersDict(message)
 
     if not str(message.author) in members:
-        member = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
-    else:
-        member = members[str(message.author)]
+        members[str(message.author)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
 
-    member.xp += xpAmount
-    member.levelUpThreshold = defaultLevelUpThreshold
+    members[str(message.author)].xp += xpAmount
+    # member.levelUpThreshold = defaultLevelUpThreshold
 
-    if member.xp >= member.levelUpThreshold:
-        member.level += 1
-        member.xp = 0
-        member.levelUpThreshold += 5
+    if members[str(message.author)].xp >= members[str(message.author)].levelUpThreshold:
+        members[str(message.author)].level += 1
+        members[str(message.author)].xp = 0
+        members[str(message.author)].levelUpThreshold += 5
         await message.channel.send(message.author.mention + " you leveled up! You are now level " + str(members[str(message.author)].level))
 
     setMemberRanks(message, message.guild)
@@ -425,13 +414,16 @@ async def giveMemberXP(xpAmount, message):
 async def getMemberLevel(message, member):
     members = populateMembersDict(message)
 
+    if not str(message.author) in members:
+        members[str(message.author)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
+
     if message.guild.get_member_named(str(member)) == None:
         await message.channel.send("That's not a member bro")
         return None
 
     setMemberRanks(message, message.guild)
 
-    embedVar = discord.Embed(title="", description="", color=0x07a0c3)
+    embedVar = discord.Embed(title="", description="", color=0x6495ED)
     embedVar.add_field(name="Level", value=str(members[str(member)].level), inline=False)
     embedVar.add_field(name="XP", value=str(int(members[str(member)].xp)), inline=False)
     embedVar.add_field(name="Rank", value="#" + str(members[str(member)].rank), inline=False)
