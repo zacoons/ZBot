@@ -12,7 +12,8 @@ import time
 import typing
 import asyncio
 
-client = commands.Bot(command_prefix="z ")
+prefixes = 'z ', 'Z ', 'z', 'Z'
+client = commands.Bot(command_prefix=prefixes)
 client.remove_command('help')
 reddit = praw.Reddit(client_id='9B_9EgNR0RblQQ', client_secret='de1ze7ZZ9q7GajWI5ZYkXv451vQ', user_agent='ZBot_v1')
 vars = dict()
