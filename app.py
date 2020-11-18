@@ -58,7 +58,7 @@ async def on_ready():
 
     print('Logged in as {0.user}'.format(client))
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for Z help'))
-    
+
     pollUnpickledData = TryLoadSavedDict(pollDataFilename)
 
     memberUnpickledData = TryLoadSavedDict(memberDataFilename)
@@ -66,6 +66,7 @@ async def on_ready():
 @client.command()
 async def help(message):
     embedVar = discord.Embed(title="ZBot Help", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
     embedVar.add_field(name="Levels", value="`z helplvls`")
     embedVar.add_field(name="Moderator", value="`z helpmod`")
     embedVar.add_field(name="Other", value="`z helpmisc`")
@@ -74,6 +75,7 @@ async def help(message):
 @client.command()
 async def helpmod(message):
     embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
     embedVar.add_field(name="`z warn [Username]`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
     embedVar.add_field(name="`z pardon [Username]`", value="(Moderators only) Clears a member's warns", inline=False)
     embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
@@ -83,6 +85,7 @@ async def helpmod(message):
 @client.command()
 async def helpmisc(message):
     embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
     embedVar.add_field(name="`z meme`", value="Fetches a meme from reddit", inline=False)
     embedVar.add_field(name="`z joke`", value="Send you a normal joke", inline=False)
     embedVar.add_field(name="`z codejoke`", value="Sends you a programmer joke", inline=False)
@@ -92,10 +95,11 @@ async def helpmisc(message):
 @client.command()
 async def helplvls(message):
     embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
     embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
     embedVar.add_field(name="`z clearlevels [Username]`", value="(AKA clvls) (Moderators only) Clears a member's levels and xp", inline=False)
-    embedVar.add_field(name="`z clearalllevels`", value="(AKA calllvls) (Moderators only) Clears everyone's levels and xp", inline=False)
+    embedVar.add_field(name="`z purgelevels`", value="(AKA plvls) (Moderators only) Clears everyone's levels and xp", inline=False)
     await message.channel.send(embed=embedVar)
 
 #Misc
@@ -142,6 +146,7 @@ async def poll(message, pollUpRoleName:str, pollDownRoleName:str, content:str):
             return
 
     embedVar = discord.Embed(title=content, color=0x6495ED)
+    embedVar.set_thumbnail(url="https://i.imgur.com/FZKHNYE.png")
     msg = await message.channel.send(embed=embedVar)
     await msg.add_reaction('👍')
     await msg.add_reaction('👎')
@@ -238,6 +243,8 @@ async def levels(message):
     for memberName, data in sortedMembers:
         embedVar.add_field(name='#'+str(data.rank)+' - '+memberName, value='level '+str(data.level), inline=False)
 
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+
     await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['clvls'])
@@ -253,9 +260,9 @@ async def clearlevels(message, member:discord.Member):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.command(aliases=['calllvls'])
+@client.command(aliases=['plvls'])
 @commands.has_permissions(kick_members=True)
-async def clearalllevels(message):
+async def purgelevels(message):
     servers = memberUnpickledData
 
     if str(message.guild) in servers:
@@ -268,9 +275,10 @@ async def clearalllevels(message):
         return
 
     for member in members:
-        if members[member] == None:
+        if members[str(member)] == None:
             return
-        clearLevels(message, member)
+        else:
+            clearLevels(message, member)
     
     await message.message.add_reaction('👍')
 
@@ -415,8 +423,8 @@ async def giveMemberXP(xpAmount, message):
 async def getMemberLevel(message, member):
     members = populateMembersDict(message)
 
-    if not str(message.author) in members:
-        members[str(message.author)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
+    if not str(member) in members:
+        members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
 
     if message.guild.get_member_named(str(member)) == None:
         await message.channel.send("That's not a member bro")
@@ -425,6 +433,7 @@ async def getMemberLevel(message, member):
     setMemberRanks(message, message.guild)
 
     embedVar = discord.Embed(title="", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=member.avatar_url)  
     embedVar.add_field(name="Level", value=str(members[str(member)].level), inline=False)
     embedVar.add_field(name="XP", value=str(int(members[str(member)].xp)), inline=False)
     embedVar.add_field(name="Rank", value="#" + str(members[str(member)].rank), inline=False)
@@ -440,10 +449,11 @@ def setMemberRanks(message, guild):
         for checkMember in members:
             if members[str(member)].level > members[str(checkMember)].level:
                 members[str(member)].rank -= 1
-            else:
-                if members[str(member)].level == members[str(checkMember)].level:
-                    if members[str(member)].xp > members[str(checkMember)].xp:
-                        members[str(member)].rank -= 1
+            elif members[str(member)].level == members[str(checkMember)].level:
+                if members[str(member)].xp > members[str(checkMember)].xp:
+                    members[str(member)].rank -= 1
+                elif members[str(member)].xp == members[str(checkMember)].xp:
+                    members[str(member)].rank = members[str(checkMember)].rank
     
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
