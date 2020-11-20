@@ -488,11 +488,11 @@ async def giveMemberXP(xpAmount, message):
         if msg != None:
             lvlUpMsg = msg.replace('[mention]', message.author.mention)
             memberInfo = await getMemberLevel(message, message.author)
-            lvlUpMsg = msg.replace('[level]',  str(memberInfo.level))
+            lvlUpMsg = lvlUpMsg.replace('[level]',  str(memberInfo.level))
         channel = client.get_channel(setupData.lvlUpChannel)
         if channel == None:
             channel = message.channel
-        if lvlUpMsg == None:
+        if lvlUpMsg == "":
             lvlUpMsg = (message.author.mention + " you leveled up! You are now level " + str(members[str(message.author)].level))
         await channel.send(lvlUpMsg)
 
