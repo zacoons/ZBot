@@ -5,7 +5,7 @@ import re
 import os
 from key import key
 from jokes import jokes
-import pyjokes
+from convostarters import convostarters
 import pickle
 import praw
 import time
@@ -16,11 +16,12 @@ prefixes = 'z ', 'Z ', 'z', 'Z'
 client = commands.Bot(command_prefix=prefixes)
 client.remove_command('help')
 reddit = praw.Reddit(client_id='9B_9EgNR0RblQQ', client_secret='de1ze7ZZ9q7GajWI5ZYkXv451vQ', user_agent='ZBot_v1')
-vars = dict()
 pollUnpickledData = dict()
 memberUnpickledData = dict()
+setupUnpickledData = dict()
 pollDataFilename = "pollData.pickle"
 memberDataFilename = "memberData.pickle"
+setupDataFilename = "setupData.pickle"
 defaultLevelUpThreshold = 20
 
 class PollData:
@@ -37,12 +38,12 @@ class MemberData:
         self.rank = rank
         self.levelUpThreshold = levelUpThreshold
 
-# class LevelData:
-#     def __init__(self, channel):
-#         self.warns = warns
-#         self.xp = xp
-#         self.level = level
-#         self.rank = rank
+class SetupData:
+    def __init__(self, lvlUpChannel, lvlUpMsg, welcomeChannel, welcomeMsg):
+        self.lvlUpChannel = lvlUpChannel
+        self.lvlUpMsg = lvlUpMsg
+        self.welcomeChannel = welcomeChannel
+        self.welcomeMsg = welcomeMsg
 
 def TryLoadSavedDict(filename):
     if os.path.isfile(filename):
@@ -55,21 +56,33 @@ def TryLoadSavedDict(filename):
 async def on_ready():
     global pollUnpickledData
     global memberUnpickledData
+    global setupUnpickledData
 
     print('Logged in as {0.user}'.format(client))
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for Z help'))
 
     pollUnpickledData = TryLoadSavedDict(pollDataFilename)
-
     memberUnpickledData = TryLoadSavedDict(memberDataFilename)
+    setupUnpickledData = TryLoadSavedDict(setupDataFilename)
 
 @client.command()
 async def help(message):
     embedVar = discord.Embed(title="ZBot Help", description="", color=0x6495ED)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+    embedVar.add_field(name="Setup", value="`z helpsetup`")
     embedVar.add_field(name="Levels", value="`z helplvls`")
     embedVar.add_field(name="Moderator", value="`z helpmod`")
     embedVar.add_field(name="Other", value="`z helpmisc`")
+    await message.channel.send(embed=embedVar)
+
+@client.command()
+async def helpsetup(message):
+    embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+    embedVar.add_field(name="`z setlvlupchannel`", value="Sets a specific channel for the level up message", inline=False)
+    embedVar.add_field(name="`z setlvlupmsg`", value="Syntax example: z setlvlupmsg `Nice job [mention]! You're now level [level]!`", inline=False)
+    embedVar.add_field(name="`z setwelcomechannel`", value="Sets a specific channel for the welcome message", inline=False)
+    embedVar.add_field(name="`z setwelcomemsg`", value="Syntax example: z setwelcomemsg `Welcome to the server [mention]!`", inline=False)
     await message.channel.send(embed=embedVar)
 
 @client.command()
@@ -88,7 +101,7 @@ async def helpmisc(message):
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
     embedVar.add_field(name="`z meme`", value="Fetches a meme from reddit", inline=False)
     embedVar.add_field(name="`z joke`", value="Send you a normal joke", inline=False)
-    embedVar.add_field(name="`z codejoke`", value="Sends you a programmer joke", inline=False)
+    embedVar.add_field(name="`z conversationstarter`", value="(AKA convostart) Sends you a conversation starter", inline=False)
     embedVar.add_field(name="`z poll [ThumbsUpRole] [ThumbsDownRole] [Message Content]`", value="Sets a poll, the variables you set determine the content of the poll", inline=False)
     await message.channel.send(embed=embedVar)
 
@@ -107,13 +120,13 @@ async def helplvls(message):
 async def joke(message):
     await message.channel.send(random.choice(jokes))
 
-@client.command()
-async def codejoke(message):
-    await message.channel.send(pyjokes.get_joke())
+@client.command(aliases=['convostart'])
+async def conversationstarter(message):
+    await message.channel.send(random.choice(convostarters))
 
 @client.command()
 async def meme(message):
-    meme_submissions = reddit.subreddit('meme').hot()
+    meme_submissions = reddit.subreddit('memes').hot()
     post_to_pick = random.randint(1, 25)
     for i in range(0, post_to_pick):
         submission = next(x for x in meme_submissions if not x.stickied)
@@ -154,6 +167,35 @@ async def poll(message, pollUpRoleName:str, pollDownRoleName:str, content:str):
     
     with open(pollDataFilename, "wb") as file:
         pickle.dump(serverPolls, file)
+
+#Setup
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def setlvlupchannel(message):
+    setLevelUpChannel(message.guild, message.channel)
+
+    await message.message.add_reaction('👍')
+
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def setlvlupmsg(message, msg:str):
+    setLevelUpMessage(message.guild, msg)
+
+    await message.message.add_reaction('👍')
+
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def setwelcomechannel(message):
+    setWelcomeChannel(message.guild, message.channel)
+
+    await message.message.add_reaction('👍')
+
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def setwelcomemsg(message, msg:str):
+    setWelcomeMessage(message.guild, msg)
+
+    await message.message.add_reaction('👍')
 
 #Mod
 @client.command()
@@ -231,7 +273,14 @@ async def level(message, member:typing.Optional[discord.Member]):
     if member == None:
         member = message.author
 
-    await getMemberLevel(message, member)
+    memberInfo = await getMemberLevel(message, member)
+
+    embedVar = discord.Embed(title="", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=member.avatar_url)  
+    embedVar.add_field(name="Level", value=str(memberInfo.level), inline=False)
+    embedVar.add_field(name="XP", value=str(int(memberInfo.xp)), inline=False)
+    embedVar.add_field(name="Rank", value="#" + str(memberInfo.rank), inline=False)
+    await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['lvls'])
 async def levels(message):
@@ -286,21 +335,37 @@ async def purgelevels(message):
         pickle.dump(memberUnpickledData, file)
 
 @client.event
+async def on_member_join(member):
+    setupData = loadSetupData(member.guild)
+    welcomeMsg = setupData.welcomeMsg.replace('[mention]', member.mention)
+    channel = client.get_channel(setupData.welcomeChannel)
+    
+    if channel == None or welcomeMsg == "":
+        return
+
+    await channel.send(welcomeMsg)
+
+@client.event
 async def on_message(message):
+    modRole = discord.utils.get(message.guild.roles, name="Moderator")
+    if message.content.lower().startswith('!d bump'):
+        await asyncio.sleep(7200)
+        await message.channel.send(modRole.mention + ' pls type the command `!d bump`')
+
     if message.author == client.user:
         return
     
     await giveMemberXP(1, message)
 
     #Checks for swear words
-    msgSwearCheckTxt = message.content.lower()
-    swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch', 'penis', 'vagina'] #These are all the swear words I know
-    for word in swearWords:
-        if re.search(word, msgSwearCheckTxt) != None:
-            # await warnMember(message, message.author)
-            await message.delete()
-            await muteMember(message.guild, message.author, 60)
-            return
+    # msgSwearCheckTxt = message.content.lower()
+    # swearWords = ['shit', 'fuck', 'dick', 'cunt', 'bitch', 'penis', 'vagina'] #These are all the swear words I know
+    # for word in swearWords:
+    #     if re.search(word, msgSwearCheckTxt) != None:
+    #         # await warnMember(message, message.author)
+    #         await message.delete()
+    #         await muteMember(message.guild, message.author, 60)
+    #         return
 
     await client.process_commands(message)
 
@@ -379,10 +444,10 @@ async def warnMember(message, member):
         await message.channel.send(str(member) + " doesn't exist bro")
 
 async def muteMember(guild, member, muteTime):
-    mutedRole = discord.utils.get(guild.roles, name="🤐 Muted")
+    mutedRole = discord.utils.get(guild.roles, name="Muted")
 
     if not mutedRole:
-        mutedRole = await guild.create_role(name="🤐 Muted")
+        mutedRole = await guild.create_role(name="Muted")
 
         for channel in guild.channels:
             await channel.set_permissions(mutedRole, speak=False, send_messages=False)
@@ -395,13 +460,15 @@ async def muteMember(guild, member, muteTime):
     await member.remove_roles(mutedRole)
 
 def populateMembersDict(message):
-    servers = memberUnpickledData
-    if str(message.guild) in servers:
-        return servers[str(message.guild)]
+    if str(message.guild) in memberUnpickledData:
+        return memberUnpickledData[str(message.guild)]
     else:
-        servers[str(message.guild)] = dict()
-        return servers[str(message.guild)]
+        memberUnpickledData[str(message.guild)] = dict()
+        return memberUnpickledData[str(message.guild)]
 async def giveMemberXP(xpAmount, message):
+    if message.author.bot:
+        return
+    
     members = populateMembersDict(message)
 
     if not str(message.author) in members:
@@ -413,8 +480,21 @@ async def giveMemberXP(xpAmount, message):
     if members[str(message.author)].xp >= members[str(message.author)].levelUpThreshold:
         members[str(message.author)].level += 1
         members[str(message.author)].xp = 0
-        members[str(message.author)].levelUpThreshold += 5
-        await message.channel.send(message.author.mention + " you leveled up! You are now level " + str(members[str(message.author)].level))
+        members[str(message.author)].levelUpThreshold += 10
+
+        setupData = loadSetupData(message.guild)
+        msg = setupData.lvlUpMsg
+        lvlUpMsg = None
+        if msg != None:
+            lvlUpMsg = msg.replace('[mention]', message.author.mention)
+            memberInfo = await getMemberLevel(message, message.author)
+            lvlUpMsg = msg.replace('[level]',  str(memberInfo.level))
+        channel = client.get_channel(setupData.lvlUpChannel)
+        if channel == None:
+            channel = message.channel
+        if lvlUpMsg == None:
+            lvlUpMsg = (message.author.mention + " you leveled up! You are now level " + str(members[str(message.author)].level))
+        await channel.send(lvlUpMsg)
 
     setMemberRanks(message, message.guild)
 
@@ -432,14 +512,8 @@ async def getMemberLevel(message, member):
 
     setMemberRanks(message, message.guild)
 
-    embedVar = discord.Embed(title="", description="", color=0x6495ED)
-    embedVar.set_thumbnail(url=member.avatar_url)  
-    embedVar.add_field(name="Level", value=str(members[str(member)].level), inline=False)
-    embedVar.add_field(name="XP", value=str(int(members[str(member)].xp)), inline=False)
-    embedVar.add_field(name="Rank", value="#" + str(members[str(member)].rank), inline=False)
-    await message.channel.send(embed=embedVar)
-# async def addLevelRole(level, role):
-#     LevelData()
+    return members[str(member)]
+    
 def setMemberRanks(message, guild):
     members = populateMembersDict(message)
     
@@ -468,6 +542,32 @@ def clearLevels(message, member):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-# async def setLevelUpChannel()
+#Setup data functions
+def saveSetupData(guild):
+    with open(setupDataFilename, "wb") as file:
+        pickle.dump(setupUnpickledData, file)
+def loadSetupData(guild):
+    if not str(guild) in setupUnpickledData:
+        setupUnpickledData[str(guild)] = SetupData(None, "", None, "")
+
+    return setupUnpickledData[str(guild)]
+
+def setLevelUpChannel(guild, channel):
+    setupData = loadSetupData(guild)
+    setupData.lvlUpChannel = channel.id
+    saveSetupData(guild)
+def setLevelUpMessage(guild, msg):
+    setupData = loadSetupData(guild)
+    setupData.lvlUpMsg = msg
+    saveSetupData(guild)
+
+def setWelcomeChannel(guild, channel):
+    setupData = loadSetupData(guild)
+    setupData.welcomeChannel = channel.id
+    saveSetupData(guild)
+def setWelcomeMessage(guild, msg):
+    setupData = loadSetupData(guild)
+    setupData.welcomeMsg = msg
+    saveSetupData(guild)
 
 client.run(key)
