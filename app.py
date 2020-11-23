@@ -345,13 +345,9 @@ async def on_member_join(member):
 
     await channel.send(welcomeMsg)
 
+#Events
 @client.event
 async def on_message(message):
-    modRole = discord.utils.get(message.guild.roles, name="Moderator")
-    if message.content.lower().startswith('!d bump'):
-        await asyncio.sleep(7200)
-        await message.channel.send(modRole.mention + ' pls type the command `!d bump`')
-
     if message.author == client.user:
         return
     
@@ -403,6 +399,7 @@ async def on_reaction_remove(reaction, user):
             if pollDownRole != None:
                 await removeRole(pollDownRole, user)
 
+#Functions
 async def assignRole(role, user):
     await user.add_roles(role, reason=None, atomic=False)
 async def removeRole(role, user):
