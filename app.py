@@ -12,6 +12,33 @@ import time
 import typing
 import asyncio
 
+class Pokezeemon:
+    def __init__(self, cost, name):
+        self.cost = cost
+        self.name = name
+
+class PollData:
+    def __init__(self, msgID, pollUpRole, pollDownRole):
+        self.msgID = msgID
+        self.pollUpRole = pollUpRole
+        self.pollDownRole = pollDownRole
+
+class MemberData:
+    def __init__(self, warns, xp, level, rank, levelUpThreshold, pokezeemon):
+        self.warns = warns
+        self.xp = xp
+        self.level = level
+        self.rank = rank
+        self.levelUpThreshold = levelUpThreshold
+        self.pokezeemon = pokezeemon
+
+class SetupData:
+    def __init__(self, lvlUpChannel, lvlUpMsg, welcomeChannel, welcomeMsg):
+        self.lvlUpChannel = lvlUpChannel
+        self.lvlUpMsg = lvlUpMsg
+        self.welcomeChannel = welcomeChannel
+        self.welcomeMsg = welcomeMsg
+
 prefixes = 'z ', 'Z ', 'z', 'Z'
 client = commands.Bot(command_prefix=prefixes)
 client.remove_command('help')
@@ -23,27 +50,7 @@ pollDataFilename = "pollData.pickle"
 memberDataFilename = "memberData.pickle"
 setupDataFilename = "setupData.pickle"
 defaultLevelUpThreshold = 20
-
-class PollData:
-    def __init__(self, msgID, pollUpRole, pollDownRole):
-        self.msgID = msgID
-        self.pollUpRole = pollUpRole
-        self.pollDownRole = pollDownRole
-
-class MemberData:
-    def __init__(self, warns, xp, level, rank, levelUpThreshold):
-        self.warns = warns
-        self.xp = xp
-        self.level = level
-        self.rank = rank
-        self.levelUpThreshold = levelUpThreshold
-
-class SetupData:
-    def __init__(self, lvlUpChannel, lvlUpMsg, welcomeChannel, welcomeMsg):
-        self.lvlUpChannel = lvlUpChannel
-        self.lvlUpMsg = lvlUpMsg
-        self.welcomeChannel = welcomeChannel
-        self.welcomeMsg = welcomeMsg
+pokezeemons = dict()
 
 def TryLoadSavedDict(filename):
     if os.path.isfile(filename):
@@ -54,6 +61,13 @@ def TryLoadSavedDict(filename):
 
 @client.event
 async def on_ready():
+    pokezeemons["potato lord"] = Pokezeemon(20, "Potato Lord")
+    pokezeemons["pineapple lord"] = Pokezeemon(20, "Pineapple Lord")
+    pokezeemons["matthpew"] = Pokezeemon(20, "Matthpew")
+    pokezeemons["akayla"] = Pokezeemon(25, "Akalya")
+    pokezeemons["jimmonkey"] = Pokezeemon(25, "Jimmonkey")
+    pokezeemons["llama"] = Pokezeemon(50, "Llama")
+
     global pollUnpickledData
     global memberUnpickledData
     global setupUnpickledData
@@ -107,12 +121,21 @@ async def helpmisc(message):
 
 @client.command()
 async def helplvls(message):
-    embedVar = discord.Embed(title="ZBot Other Commands", description="", color=0x6495ED)
+    embedVar = discord.Embed(title="ZBot Level Commands", description="", color=0x6495ED)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
     embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
     embedVar.add_field(name="`z clearlevels [Username]`", value="(AKA clvls) (Moderators only) Clears a member's levels and xp", inline=False)
     embedVar.add_field(name="`z purgelevels`", value="(AKA plvls) (Moderators only) Clears everyone's levels and xp", inline=False)
+    await message.channel.send(embed=embedVar)
+
+@client.command()
+async def helppokezeemon(message):
+    embedVar = discord.Embed(title="ZBot Pokezeemon Commands", description="", color=0x6495ED)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
+    embedVar.add_field(name="`z pokezeemon`", value="(AKA pokezmon) Shows you the list of pokezeemon", inline=False)
+    embedVar.add_field(name="`z buypokezeemon [name]`", value="(AKA bpokezmon) Buys you the named pokezeemon", inline=False)
+    embedVar.add_field(name="`z mypokezeemon`", value="(AKA mypokezmon) Shows you a list of your pokezeemon", inline=False)
     await message.channel.send(embed=embedVar)
 
 #Misc
@@ -273,18 +296,20 @@ async def level(message, member:typing.Optional[discord.Member]):
     if member == None:
         member = message.author
 
-    memberInfo = await getMemberLevel(message, member)
+    # memberInfo = await getMemberLevel(message, member)
+    members = loadMemberData(message.guild)
+    memberInfo = members[str(member)]
 
     embedVar = discord.Embed(title="", description="", color=0x6495ED)
     embedVar.set_thumbnail(url=member.avatar_url)  
+    embedVar.add_field(name="XP", value=str(memberInfo.xp)+"/"+str(memberInfo.levelUpThreshold), inline=False)
     embedVar.add_field(name="Level", value=str(memberInfo.level), inline=False)
-    embedVar.add_field(name="XP", value=str(int(memberInfo.xp)), inline=False)
     embedVar.add_field(name="Rank", value="#" + str(memberInfo.rank), inline=False)
     await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['lvls'])
 async def levels(message):
-    members = populateMembersDict(message)
+    members = loadMemberData(message.guild)
     sortedMembers = sorted(members.items(), key = lambda kv: kv[1].rank)
 
     embedVar = discord.Embed(title="Leaderboard", description="", color=0x6495ED)
@@ -334,16 +359,55 @@ async def purgelevels(message):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 
-@client.event
-async def on_member_join(member):
-    setupData = loadSetupData(member.guild)
-    welcomeMsg = setupData.welcomeMsg.replace('[mention]', member.mention)
-    channel = client.get_channel(setupData.welcomeChannel)
-    
-    if channel == None or welcomeMsg == "":
-        return
+#Pokezeemon
+@client.command(aliases=['bpokezmon'])
+async def buypokezeemon(message, pokezeemon:str):
+    if buyPokezeemon(pokezeemons[pokezeemon.lower()], message.author):
+        await message.channel.send("Woaw! You just bought a **" + pokezeemon.lower() + "**!")
+    else:
+        await message.channel.send("You don't have enough money for that :/")
 
-    await channel.send(welcomeMsg)
+@client.command(aliases=['pokezmon'])
+async def pokezeemon(message):
+    embedVar = discord.Embed(title="Pokezeemon", description="", color=0x6495ED)
+    # embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+    embedVar.add_field(name="Matthpew :gun:", value="**Cost: 20xp... **It's a wild Matthew but *pewpew*", inline=False)
+    embedVar.add_field(name="Akayla :sparkles:", value="**Cost: 25xp... **A Kalley... But with *mystical* sparkle powers", inline=False)
+    embedVar.add_field(name="Potato Lord :crown:", value="**Cost: 20xp... **The alpha potato... It shoots hot potato spuds with it's **devastating** potato tank", inline=False)
+    embedVar.add_field(name="Jimmonkey :banana:", value="**Cost: 25xp... **An alpha jimmonkey with it's **devastating** banana gun", inline=False)
+    await message.channel.send(embed=embedVar)
+
+@client.command(aliases=['mypokezmon'])
+async def mypokezeemon(message, member:typing.Optional[discord.Member]):
+    members = loadMemberData(message.guild)
+
+    if member == None:
+        memberName = str(message.author)
+    else:
+        memberName = str(member)
+
+    embedVar = discord.Embed(title="Your Pokezeemon", description="", color=0x6495ED)
+    # embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+
+    for pokezeemon in members[memberName].pokezeemon:
+        embedVar.add_field(name=str(pokezeemon), value="Cost: "+str(pokezeemons[pokezeemon.lower()].cost)+"xp", inline=False)
+    
+    await message.channel.send(embed=embedVar)
+
+@client.command(aliases=['dpokezmon'])
+async def disbandpokezeemon(message, member:typing.Optional[discord.Member]):
+    members = loadMemberData(message.guild)
+
+    if member == None:
+        memberName = str(message.author)
+    else:
+        memberName = str(member)
+    
+    members[memberName].pokezeemon = dict()
+
+    saveMemberData()
+
+    await message.message.add_reaction('👍')
 
 #Events
 @client.event
@@ -364,6 +428,17 @@ async def on_message(message):
     #         return
 
     await client.process_commands(message)
+
+@client.event
+async def on_member_join(member):
+    setupData = loadSetupData(member.guild)
+    welcomeMsg = setupData.welcomeMsg.replace('[mention]', member.mention)
+    channel = client.get_channel(setupData.welcomeChannel)
+    
+    if channel == None or welcomeMsg == "":
+        return
+
+    await channel.send(welcomeMsg)
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -405,6 +480,32 @@ async def assignRole(role, user):
 async def removeRole(role, user):
     await user.remove_roles(role, reason=None, atomic=False)
 
+#Member functions
+def loadMemberData(guild):
+    if str(guild) in memberUnpickledData:
+        return memberUnpickledData[str(guild)]
+    else:
+        memberUnpickledData[str(guild)] = dict()
+        return memberUnpickledData[str(guild)]
+def saveMemberData():
+    with open(memberDataFilename, "wb") as file:
+        pickle.dump(setupUnpickledData, file)
+async def muteMember(guild, member, muteTime):
+    mutedRole = discord.utils.get(guild.roles, name="Muted")
+
+    if not mutedRole:
+        mutedRole = await guild.create_role(name="Muted")
+
+        for channel in guild.channels:
+            await channel.set_permissions(mutedRole, speak=False, send_messages=False)
+
+    await member.add_roles(mutedRole, reason=None)
+    await member.send("RIP, you were muted for " + str(muteTime) + " seconds :/")
+
+    await asyncio.sleep(muteTime)
+
+    await member.remove_roles(mutedRole)
+#Warns
 async def warnMember(message, member):
     if member != None:
         if member.id != client.user.id:
@@ -417,7 +518,7 @@ async def warnMember(message, member):
                     servers[str(message.guild)] = members
 
                 if not str(member) in members:
-                    members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
+                    members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold, dict())
 
                 members[str(member)].warns += 1
 
@@ -439,37 +540,15 @@ async def warnMember(message, member):
             await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
     else:
         await message.channel.send(str(member) + " doesn't exist bro")
-
-async def muteMember(guild, member, muteTime):
-    mutedRole = discord.utils.get(guild.roles, name="Muted")
-
-    if not mutedRole:
-        mutedRole = await guild.create_role(name="Muted")
-
-        for channel in guild.channels:
-            await channel.set_permissions(mutedRole, speak=False, send_messages=False)
-
-    await member.add_roles(mutedRole, reason=None)
-    await member.send("RIP, you were muted for " + str(muteTime) + " seconds :/")
-
-    await asyncio.sleep(muteTime)
-
-    await member.remove_roles(mutedRole)
-
-def populateMembersDict(message):
-    if str(message.guild) in memberUnpickledData:
-        return memberUnpickledData[str(message.guild)]
-    else:
-        memberUnpickledData[str(message.guild)] = dict()
-        return memberUnpickledData[str(message.guild)]
+#Levels
 async def giveMemberXP(xpAmount, message):
     if message.author.bot:
         return
     
-    members = populateMembersDict(message)
+    members = loadMemberData(message.guild)
 
     if not str(message.author) in members:
-        members[str(message.author)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
+        members[str(message.author)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold, dict())
 
     members[str(message.author)].xp += xpAmount
     # member.levelUpThreshold = defaultLevelUpThreshold
@@ -484,8 +563,9 @@ async def giveMemberXP(xpAmount, message):
         lvlUpMsg = None
         if msg != None:
             lvlUpMsg = msg.replace('[mention]', message.author.mention)
-            memberInfo = await getMemberLevel(message, message.author)
-            lvlUpMsg = lvlUpMsg.replace('[level]',  str(memberInfo.level))
+            # memberInfo = await getMemberLevel(message, message.author)
+            # lvlUpMsg = lvlUpMsg.replace('[level]',  str(memberInfo.level))
+            lvlUpMsg = lvlUpMsg.replace('[level]',  str(members[str(message.author)].level))
         channel = client.get_channel(setupData.lvlUpChannel)
         if channel == None:
             channel = message.channel
@@ -498,10 +578,10 @@ async def giveMemberXP(xpAmount, message):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 async def getMemberLevel(message, member):
-    members = populateMembersDict(message)
+    members = loadMemberData(message.guild)
 
     if not str(member) in members:
-        members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold)
+        members[str(member)] = MemberData(0, 0, 0, 0, defaultLevelUpThreshold, dict())
 
     if message.guild.get_member_named(str(member)) == None:
         await message.channel.send("That's not a member bro")
@@ -510,9 +590,8 @@ async def getMemberLevel(message, member):
     setMemberRanks(message, message.guild)
 
     return members[str(member)]
-    
 def setMemberRanks(message, guild):
-    members = populateMembersDict(message)
+    members = loadMemberData(message.guild)
     
     for member in members:
         members[str(member)].rank = len(members)
@@ -529,7 +608,7 @@ def setMemberRanks(message, guild):
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
 def clearLevels(message, member):
-    members = populateMembersDict(message)
+    members = loadMemberData(message.guild)
 
     members[str(member)].rank = 0
     members[str(member)].xp = 0    
@@ -538,9 +617,22 @@ def clearLevels(message, member):
 
     with open(memberDataFilename, "wb") as file:
         pickle.dump(memberUnpickledData, file)
+#Pokezeemon
+def buyPokezeemon(pokezeemon, member):
+    members = loadMemberData(member.guild)
+    buyer = members[str(member)]
+
+    if pokezeemon.cost > buyer.xp:
+        return False
+
+    buyer.xp -= pokezeemon.cost
+    buyer.pokezeemon[str(pokezeemon.name)] = pokezeemon
+
+    saveMemberData()
+    return True
 
 #Setup data functions
-def saveSetupData(guild):
+def saveSetupData():
     with open(setupDataFilename, "wb") as file:
         pickle.dump(setupUnpickledData, file)
 def loadSetupData(guild):
@@ -552,11 +644,11 @@ def loadSetupData(guild):
 def setLevelUpChannel(guild, channel):
     setupData = loadSetupData(guild)
     setupData.lvlUpChannel = channel.id
-    saveSetupData(guild)
+    saveSetupData()
 def setLevelUpMessage(guild, msg):
     setupData = loadSetupData(guild)
     setupData.lvlUpMsg = msg
-    saveSetupData(guild)
+    saveSetupData()
 
 def setWelcomeChannel(guild, channel):
     setupData = loadSetupData(guild)
@@ -565,6 +657,6 @@ def setWelcomeChannel(guild, channel):
 def setWelcomeMessage(guild, msg):
     setupData = loadSetupData(guild)
     setupData.welcomeMsg = msg
-    saveSetupData(guild)
+    saveSetupData()
 
 client.run(key)
