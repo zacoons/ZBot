@@ -33,10 +33,12 @@ class CurrencyData:
         self.inventory = inventory
 
 class Item:
-    def __init__(self, description, cost, use):
+    def __init__(self, description, icon, cost, use, cooldown):
         self.description = description
+        self.icon = icon
         self.cost = cost
         self.use = use
+        self.cooldown = cooldown
 
 class SetupData:
     def __init__(self, lvlUpChannel, lvlUpMsg, welcomeChannel, welcomeMsg):
@@ -53,7 +55,7 @@ memberDataFilename = "memberData.pickle"
 setupDataFilename = "setupData.pickle"
 currencyDataFilename = "currencyData.pickle"
 defaultLevelUpThreshold = 20
-defaultBankSize = 20
+defaultBankSize = 50
 embedColour = 0x6495ED
 serverCount = 0
 embedFooters = []
@@ -67,14 +69,14 @@ def TryLoadSavedDict(filename):
 
 @client.event
 async def on_ready():
+    print('Logged in as {0.user}'.format(client))
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for z help'))
+
     global memberUnpickledData
     global setupUnpickledData
     global currencyUnpickledData
     global embedFooters
     global items
-
-    print('Logged in as {0.user}'.format(client))
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='for z help'))
 
     memberUnpickledData = TryLoadSavedDict(memberDataFilename)
     setupUnpickledData = TryLoadSavedDict(setupDataFilename)
@@ -85,9 +87,10 @@ async def on_ready():
     "Add ZBot to your server at: zacoons.com/code/zbot",
     "Made by Zacoons, feel free to join the help server: https://discord.gg/9nP75tN",
     "Watching over "+str(len(client.guilds))+" servers for free"]
-    items = {'christmas box': Item(description="Use `z use christmas box` to open it and find a suprise inside", cost=150, use=useChristmasBox),
-    'bank note': Item(description="Use `z use bank note` to increase the capacity of your bank", cost=50, use=useBankNote),
-    'rifle': Item(description="Use `z use rifle` to go on a hunt and earn some coins, this item also protects you from being robbed", cost=250, use=useRifle)}
+    
+    items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:786371826028249118>", 150, useChristmasBox, 0),
+    'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:786366797897007134>", 50, useBankNote, 0),
+    'rifle': Item("Use `z use rifle` to go on a hunt and earn some coins, this item also protects you from being robbed", "<:rifle:786360915041583134>", 250, useRifle, 60)}
 
 @client.command()
 async def help(message, helpType:typing.Optional[str]):
@@ -109,7 +112,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z setlvlupmsg`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
         embedVar.add_field(name="`z setwelcomechannel`", value="Sets a specific channel for the welcome message", inline=False)
         embedVar.add_field(name="`z setwelcomemsg`", value='Syntax example: z setwelcomemsg "Welcome to the server [mention]!"', inline=False)
-        embedVar.add_field(name="`z serverconfiguration`", value='(AKA serverconf) Shows you the your server setup configuration', inline=False)
+        embedVar.add_field(name="`z configuration`", value='(AKA config) Shows you the your server setup configuration', inline=False)
         await message.channel.send(embed=embedVar)
     elif helpType == "mod":
         embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=embedColour)
@@ -139,20 +142,18 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
         embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
         embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
-        embedVar.add_field(name="`z clearlevels [Username]`", value="(AKA clvls) (Moderators only) Clears a member's levels and xp", inline=False)
-        embedVar.add_field(name="`z purgelevels`", value="(AKA plvls) (Moderators only) Clears everyone's levels and xp", inline=False)
         await message.channel.send(embed=embedVar)
     elif helpType == "currency":
         embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
-        embedVar.add_field(name="`z work`", value="(5 min cooldown) Earns you some money", inline=False)
+        embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
+        embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
         embedVar.add_field(name="`z deposit [Amount](Can be 'all' or a number)`", value="(AKA dep) Deposits your money in the bank for safekeeping", inline=False)
         embedVar.add_field(name="`z buy [Item]`", value="Buys an item with the name given", inline=False)
         embedVar.add_field(name="`z withdraw [Amount](Can be 'all' or a number)`", value="(AKA with) Takes your money out of the bank to use", inline=False)
         embedVar.add_field(name="`z steal [Member]`", value="(5 min cooldown)(AKA rob) Steals a member's coins... Or not", inline=False)
         embedVar.add_field(name="`z donate [Member] [Amount]`", value="(AKA don) Donate a member some coins", inline=False)
-        embedVar.add_field(name="`z upgradebank`", value="Gives you a bigger bank", inline=False)
         embedVar.add_field(name="`z balance [Member](Optional)`", value="(AKA bal) Shows you how many coins you have in your wallet *and* you bank", inline=False)
         embedVar.add_field(name="`z inventory [Member](Optional)`", value="(AKA inv) Shows you the items that you own", inline=False)
         embedVar.add_field(name="`z shop`", value="(AKA store) Shows you the items that you can buy", inline=False)
@@ -208,8 +209,8 @@ async def hug(message, member:discord.Member):
     member2Resized = member2.resize((250, 250)) 
 
     mainImg = img.copy()
-    mainImg.paste(member2Resized, (240, 150))
-    mainImg.paste(member1Resized, (650, 150))
+    mainImg.paste(member2Resized, (310, 200))
+    mainImg.paste(member1Resized, (620, 150))
 
     mainImgBytes = BytesIO()
     mainImg.save(mainImgBytes, "jpeg")
@@ -259,13 +260,13 @@ async def high5(message, member:discord.Member):
     response2 = requests.get(member.avatar_url)
     img = Image.open("c:/users/zacha/source/repos/zbot/highfiveBG.png")
     member1 = Image.open(BytesIO(response1.content))
-    member1Resized = member1.resize((150, 150)) 
+    member1Resized = member1.resize((200, 200)) 
     member2 = Image.open(BytesIO(response2.content))
-    member2Resized = member2.resize((100, 100)) 
+    member2Resized = member2.resize((200, 200)) 
 
     mainImg = img.copy()
-    mainImg.paste(member1Resized, (120, 45))
-    mainImg.paste(member2Resized, (540, 140))
+    mainImg.paste(member1Resized, (500, 400))
+    mainImg.paste(member2Resized, (1450, 475))
 
     mainImgBytes = BytesIO()
     mainImg.save(mainImgBytes, "png")
@@ -304,8 +305,8 @@ async def setwelcomemsg(message):
 
     await message.message.add_reaction('👍')
 
-@client.command(aliases=['serverconf'])
-async def serverconfiguration(message):
+@client.command(aliases=['config'])
+async def configuration(message):
     data = loadSetupData(message.guild)
     welcomeChannel = client.get_channel(data.welcomeChannel)
     lvlUpChannel = client.get_channel(data.lvlUpChannel)
@@ -317,17 +318,21 @@ async def serverconfiguration(message):
         welcomeChannelName = 'None'
     else:
         welcomeChannelName = welcomeChannel.name
-    if data.lvlUpMsg == None:
-        lvlUpChannelName = 'None'
-    if data.welcomeMsg == None:
-        welcomeChannelName = 'None'
+    if data.lvlUpMsg == '':
+        lvlUpMsg = 'None'
+    else:
+        lvlUpMsg = data.lvlUpMsg
+    if data.welcomeMsg == '':
+        welcomeMsg = 'None'
+    else:
+        welcomeMsg = data.welcomeMsg
 
     embedVar = discord.Embed(title=message.guild.name+" Server Configuration", description="", color=embedColour)
     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=message.guild.icon_url)   
-    embedVar.add_field(name="Welcome message", value=data.welcomeMsg, inline=False)
+    embedVar.add_field(name="Welcome message", value=welcomeMsg, inline=False)
     embedVar.add_field(name="Welcome channel", value=welcomeChannelName, inline=False)
-    embedVar.add_field(name="Level up message", value=data.lvlUpMsg, inline=False)
+    embedVar.add_field(name="Level up message", value=lvlUpMsg, inline=False)
     embedVar.add_field(name="Level up channel", value=lvlUpChannelName, inline=False)
     await message.channel.send(embed=embedVar)    
 
@@ -413,51 +418,20 @@ async def levels(message):
 
     await message.channel.send(embed=embedVar)
 
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def clearlevels(message, member:discord.Member):
-    if member == None:
-        await message.channel.send((str(member) + " isn't a member bro"))
-        return
-
-    clearLevels(message, member)
-    await message.message.add_reaction('👍')
-
-    saveMemberData()
-
-@client.command(aliases=['plvls'])
-@commands.has_permissions(kick_members=True)
-async def purgelevels(message):
-    members = loadMemberData(message.guild)
-
-    for member in members:
-        if members[str(member)] == None:
-            return
-        else:
-            clearLevels(message, member)
-    
-    await message.message.add_reaction('👍')
-
-    saveMemberData()
-
 #Currency
-# @client.command(aliases=['lb'])
-# async def leaderboard(message):
-#     setCurrencyRanks()
-#     data = currencyUnpickledData()
-#     sortedData = list(reversed(sorted(data.items(), key = lambda kv: kv[1].rank)))
+@client.command(aliases=['lb'])
+async def leaderboard(message):
+    setCurrencyRanks()
+    sortedData = list(sorted(currencyUnpickledData.items(), key = lambda kv: kv[1].rank))
     
-#     embedVar = discord.Embed(title="Currency Leaderboard", description="", color=embedColour)
-#     embedVar.set_footer(text="You are #"+str(loadCurrencyData(message.author).rank), icon_url=discord.utils.get(message.guild.members, name=str(message.author)).avatar_url)
-#     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-#     for data in sortedData[:3]:
-#         embedVar.add_field(name="#"+str(data), value=data)
+    embedVar = discord.Embed(title="Currency Leaderboard", description="", color=embedColour)
+    embedVar.set_footer(text="You are #"+str(loadCurrencyData(message.author).rank), icon_url=message.author.avatar_url)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    for data in sortedData[:3]:
+        data[1].netWorth = data[1].wallet + data[1].bank
+        embedVar.add_field(name="#"+str(data[1].rank)+" "+data[0][:-5], value="Net worth: "+str(data[1].netWorth)+" coins", inline=False)
 
-#     await message.channel.send(embed=embedVar)
-
-# @client.command(aliases=['globallb'])
-# async def globalleaderboard(message):
-    
+    await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['bal'])
 async def balance(message, member:typing.Optional[discord.Member]):
@@ -465,6 +439,7 @@ async def balance(message, member:typing.Optional[discord.Member]):
         member = message.author
     
     memberInfo = loadCurrencyData(member)
+    memberInfo.netWorth = memberInfo.wallet + memberInfo.bank
 
     embedVar = discord.Embed(title="", description="", color=embedColour)
     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
@@ -475,12 +450,12 @@ async def balance(message, member:typing.Optional[discord.Member]):
     await message.channel.send(embed=embedVar)
 
 @client.command()
-@commands.cooldown(1, 300, commands.BucketType.user)
+@commands.cooldown(1, 60, commands.BucketType.user)
 async def work(message):
     amount = random.randint(10, 25)
     member = loadCurrencyData(message.author)
     member.wallet += amount
-    getsBonusItem = random.randint(0, 15)
+    getsBonusItem = random.randint(0, 25)
     item = None
     if getsBonusItem == 0:
         itemName = random.choice(list(items.items()))[0]
@@ -500,6 +475,7 @@ async def work(message):
     else:
         await message.channel.send(random.choice(thingsToSay))
 
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command()
@@ -519,6 +495,7 @@ async def buy(message, itemName:str):
     
     await message.channel.send("You just bought a **"+itemName+"** for **"+str(items[itemName].cost)+"** coins")
 
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command(aliases=['dep'])
@@ -548,6 +525,7 @@ async def deposit(message, amount:str):
         else:
             await message.channel.send("That won't fit in your bank... Maybe deposit a bit less")
 
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command(aliases=['with'])
@@ -570,6 +548,7 @@ async def withdraw(message, amount:str):
         else:
             await message.channel.send("Lol you wish, you don't have that many coins")
 
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command(aliases=['rob'])
@@ -583,7 +562,8 @@ async def steal(message, member:discord.Member):
     member2Data = loadCurrencyData(member)
 
     if "rifle" in member2Data.inventory:
-        message.channel.send(message.author.mention+" has a rifle, I don't think you want to mess with him")
+        await message.channel.send(member.mention+" has a rifle, I don't think you want to mess with him")
+        return
 
     didFail = random.randint(0, 1)
     
@@ -603,6 +583,7 @@ async def steal(message, member:discord.Member):
     member1Data.wallet += stealAmount
     member2Data.wallet -= stealAmount
 
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command()
@@ -610,18 +591,23 @@ async def donate(message, member:discord.Member, amount:int):
     if int(amount) < 0:
         await message.channel.send("You can't donate negative money, smh")
         return
-    
+
     if member == message.author:
         message.channel.send("That's you dumbdumb")
     
     member1Data = loadCurrencyData(message.author)
     member2Data = loadCurrencyData(member)
 
+    if member1Data.wallet < amount:
+        await message.channel.send("Nice try, you don't have that many coins")
+        return
+
     member1Data.wallet -= amount
     member2Data.wallet += amount
 
     await message.channel.send("You just donated **"+str(amount)+"** coins to "+member.mention+". What a lucky guy \:D")
     
+    member.netWorth = member.wallet + member.bank
     saveCurrencyData()
 
 @client.command()
@@ -635,10 +621,12 @@ async def daily(message):
     saveMemberData()
 
 @client.command()
-async def use(message, item:str):
+async def use(message):
     member = loadCurrencyData(message.author)
     itemName = message.message.content.lower().replace("z use ", "")
     if itemName in member.inventory:
+        # useFunc = commands.cooldown(1, items[itemName].cooldown, commands.BucketType.user)(items[itemName].use)
+        # await useFunc(member=message.author, channel=message.channel)
         await items[itemName].use(member=message.author, channel=message.channel)
     elif itemName not in items:
         await message.channel.send("What the heck is a **"+itemName+"**")
@@ -655,8 +643,8 @@ async def inventory(message, member:typing.Optional[discord.Member]):
     embedVar.set_thumbnail(url=member.avatar_url)  
     
     data = loadCurrencyData(member)
-    for itemName in data.inventory:
-        embedVar.add_field(name=itemName, value=items[itemName].description, inline=False)
+    for item in data.inventory:
+        embedVar.add_field(name=items[item].icon+" "+item, value=items[item].description, inline=False)
     if data.inventory == dict():
         embedVar.add_field(name="You don't have any items", value="You can go find some by typing the command `z work`")
     
@@ -669,7 +657,7 @@ async def shop(message):
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
 
     for item in items:
-        embedVar.add_field(name=item+" - "+str(items[item].cost)+" coins", value=items[item].description, inline=False)
+        embedVar.add_field(name=items[item].icon+" "+item+" - "+str(items[item].cost)+" coins", value=items[item].description, inline=False)
     
     await message.channel.send(embed=embedVar)
 
@@ -715,6 +703,10 @@ async def on_command_error(message, error):
             retryAfter = "**"+str(int(error.retry_after))+"** seconds"
         
         await message.channel.send("Woah slow down there man, that command has a "+str(cooldown)+" cooldown. Try again in "+str(retryAfter))
+    elif isinstance(error, commands.BotMissingPermissions):
+        await message.channel.send("I don't have the perms to do that :/")
+    elif isinstance(error, commands.CommandNotFound):
+        await message.channel.send("That's not a command, lol")
 
 #Functions
 async def assignRole(role, user):
@@ -878,7 +870,6 @@ def setWelcomeMessage(guild, msg):
 
 #Currency data functions
 def saveCurrencyData():
-    member.netWorth = member.wallet + member.bank
     with open(currencyDataFilename, "wb") as file:
         pickle.dump(currencyUnpickledData, file)
 def loadCurrencyData(member):
@@ -888,13 +879,13 @@ def loadCurrencyData(member):
     return currencyUnpickledData[str(member)]
 def setCurrencyRanks():
     for member in currencyUnpickledData:
-        memberData = currencyUnpickledData[member]
-        memberData = len(currencyUnpickledData)
+        data = currencyUnpickledData[member]
+        data.rank = len(currencyUnpickledData)
 
         for checkMember in currencyUnpickledData:
             checkMemberData = currencyUnpickledData[checkMember]
-            if memberData.netWorth > checkMemberData.netWorth:
-                memberData.rank -= 1
+            if data.netWorth > checkMemberData.netWorth:
+                data.rank -= 1
 
     saveCurrencyData()
 
@@ -907,7 +898,7 @@ async def useChristmasBox(**kwargs):
     coins = random.randint(75, 200)
     data = loadCurrencyData(kwargs["member"])
     data.wallet += coins
-    await msg.edit(content=kwargs["member"].mention+" you got **"+str(coins)+"** coins from your **Christmas Box**")
+    await msg.edit(content=kwargs["member"].mention+" you got **"+str(coins)+"** coins from your christmas box")
     kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
 
@@ -917,6 +908,7 @@ async def useBankNote(**kwargs):
     amount = random.randint(20, 50)
     data.bankSize += amount
     await kwargs["channel"].send("Your bank size has been increased by **"+str(amount)+"** coins")
+    kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
 
 async def useRifle(**kwargs):
@@ -926,6 +918,7 @@ async def useRifle(**kwargs):
     responses=["You shot a rabbit and sold it for **"+str(amount)+"** coins",
     "You shot a skunk and sold it for **"+str(amount)+"** coins",]
     await kwargs["channel"].send(random.choice(responses))
+    kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
 
 client.run(key)
