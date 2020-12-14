@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
-from app import client, embedColour, TryLoadSavedDict
 import pickle
 import random
 import asyncio
 import typing
+from common import TryLoadSavedDict, client, embedColour, embedFooters
 
 class CurrencyData:
     def __init__(self, wallet, bank, bankSize, netWorth, rank, inventory):
@@ -30,10 +30,6 @@ currencyDataFilename = "currencyData.pickle"
 currencyUnpickledData = TryLoadSavedDict(currencyDataFilename)
 
 defaultBankSize = 50
-items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:786371826028249118>", 150, useChristmasBox, 0),
-'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:786366797897007134>", 50, useBankNote, 0),
-'rifle': Item("Use `z use rifle` to go on a hunt and earn some coins, this item also protects you from being robbed", "<:rifle:786360915041583134>", 250, useRifle, 60)}
-
 
 #Commands
 @client.command(aliases=['lb'])
@@ -334,3 +330,7 @@ async def useRifle(**kwargs):
     await kwargs["channel"].send(random.choice(responses))
     kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
+
+items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:786371826028249118>", 150, useChristmasBox, 0),
+'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:786366797897007134>", 50, useBankNote, 0),
+'rifle': Item("Use `z use rifle` to go on a hunt and earn some coins, this item also protects you from being robbed", "<:rifle:786360915041583134>", 250, useRifle, 60)}
