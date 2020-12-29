@@ -16,4 +16,7 @@ convostarters = ["What three words best describe you",
 "If you had to change your name, what would your new name be?",
 "What word or saying from the past do you think should come back?",
 "What is your guilty pleasure?",
-"Was there ever an event in your life that defied explanation?"]
+"Was there ever an event in your life that defied explanation?",
+"What was the last funny video you saw?",
+"What do you do to get rid of stress?",
+"What do you do when you hang out with your friends?"]

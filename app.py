@@ -13,9 +13,10 @@ import typing
 import asyncio
 from PIL import Image, ImageDraw, ImageFilter
 import requests
-from currency import leaderboard
+from currency import leaderboard, deposit, buy, balance, buy, daily, give, inventory, steal, shop, withdraw
+from moderator import warn, pardon, pardonall, mute
 from io import BytesIO
-from common import TryLoadSavedDict, client, embedColour, embedFooters
+from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction
 
 class MemberData:
     def __init__(self, warns, xp, level, rank, levelUpThreshold):
@@ -44,10 +45,9 @@ async def on_ready():
 
     global memberUnpickledData
     global setupUnpickledData
-    global items
 
-    memberUnpickledData = TryLoadSavedDict(memberDataFilename)
-    setupUnpickledData = TryLoadSavedDict(setupDataFilename)
+    memberUnpickledData = tryLoadSavedDict(memberDataFilename)
+    setupUnpickledData = tryLoadSavedDict(setupDataFilename)
 
 @client.command()
 async def help(message, helpType:typing.Optional[str]):
@@ -65,20 +65,20 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
-        embedVar.add_field(name="`z setlvlupchannel`", value="Sets a specific channel for the level up message", inline=False)
-        embedVar.add_field(name="`z setlvlupmsg`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
-        embedVar.add_field(name="`z setwelcomechannel`", value="Sets a specific channel for the welcome message", inline=False)
-        embedVar.add_field(name="`z setwelcomemsg`", value='Syntax example: z setwelcomemsg "Welcome to the server [mention]!"', inline=False)
+        embedVar.add_field(name="`z setlvlupchannel [Channel]`", value="Sets a specific channel for the level up message", inline=False)
+        embedVar.add_field(name="`z setlvlupmsg [Message]`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
+        embedVar.add_field(name="`z setwelcomechannel [Channel]`", value="Sets a specific channel for the welcome message", inline=False)
+        embedVar.add_field(name="`z setwelcomemsg [Message]`", value='Syntax example: z setwelcomemsg "Welcome to the server [mention]!"', inline=False)
         embedVar.add_field(name="`z configuration`", value='(AKA config) Shows you the your server setup configuration', inline=False)
         await message.channel.send(embed=embedVar)
     elif helpType == "mod":
         embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
-        embedVar.add_field(name="`z warn [Member]`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
+        embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
         embedVar.add_field(name="`z pardon [Member]`", value="(Moderators only) Clears a member's warns", inline=False)
         embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
-        embedVar.add_field(name="`z mute [Member] [time](Seconds)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)
+        embedVar.add_field(name="`z mute [Member] [Time](Seconds)(Optional) [Reason](Optional)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)
         await message.channel.send(embed=embedVar)
     elif helpType == "misc":
         embedVar = discord.Embed(title="ZBot Other Commands", description="", color=embedColour)
@@ -93,13 +93,13 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z joke`", value="Send you a normal joke", inline=False)
         embedVar.add_field(name="`z conversationstarter`", value="(AKA convostart) Sends you a conversation starter", inline=False)
         await message.channel.send(embed=embedVar)
-    elif helpType == "lvls":
-        embedVar = discord.Embed(title="ZBot Level Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
-        embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
-        embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
-        await message.channel.send(embed=embedVar)
+    # elif helpType == "lvls":
+    #     embedVar = discord.Embed(title="ZBot Level Commands", description="", color=embedColour)
+    #     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    #     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
+    #     embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
+    #     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
+    #     await message.channel.send(embed=embedVar)
     elif helpType == "currency":
         embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
@@ -110,7 +110,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z buy [Item]`", value="Buys an item with the name given", inline=False)
         embedVar.add_field(name="`z withdraw [Amount](Can be 'all' or a number)`", value="(AKA with) Takes your money out of the bank to use", inline=False)
         embedVar.add_field(name="`z steal [Member]`", value="(5 min cooldown)(AKA rob) Steals a member's coins... Or not", inline=False)
-        embedVar.add_field(name="`z donate [Member] [Amount]`", value="(AKA don) Donate a member some coins", inline=False)
+        embedVar.add_field(name="`z give [Member] [Amount/Item]`", value="Give a member some coins or an item", inline=False)
         embedVar.add_field(name="`z balance [Member](Optional)`", value="(AKA bal) Shows you how many coins you have in your wallet *and* you bank", inline=False)
         embedVar.add_field(name="`z inventory [Member](Optional)`", value="(AKA inv) Shows you the items that you own", inline=False)
         embedVar.add_field(name="`z shop`", value="(AKA store) Shows you the items that you can buy", inline=False)
@@ -215,7 +215,8 @@ async def wave(message, member:discord.Member):
 async def high5(message, member:discord.Member):
     response1 = requests.get(message.author.avatar_url)
     response2 = requests.get(member.avatar_url)
-    img = Image.open(os.path.dirname(os.path.realpath(__file__))+"\highfiveBG.png")
+    imgPath = "{rootPath}\\highfiveBG.png".format(rootPath=os.path.realpath(__file__))
+    img = Image.open(imgPath)
     member1 = Image.open(BytesIO(response1.content))
     member1Resized = member1.resize((200, 200)) 
     member2 = Image.open(BytesIO(response2.content))
@@ -228,8 +229,8 @@ async def high5(message, member:discord.Member):
     mainImgBytes = BytesIO()
     mainImg.save(mainImgBytes, "png")
 
-    mainImg.save("c:/users/zacha/source/repos/zbot/highfive.png", quality=25)
-    await message.channel.send(file=discord.File("c:/users/zacha/source/repos/zbot/highfive.png"))
+    mainImg.save(imgPath, quality=25)
+    await message.channel.send(file=discord.File(imgPath))
 
 #Setup
 @client.command()
@@ -237,7 +238,7 @@ async def high5(message, member:discord.Member):
 async def setlvlupchannel(message):
     setLevelUpChannel(message.guild, message.channel)
 
-    await message.message.add_reaction('👍')
+    await message.message.add_reaction(completedReaction)
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -245,14 +246,14 @@ async def setlvlupmsg(message):
     msg = message.message.content.replace(message.message.content[:14], "", 1)
     setLevelUpMessage(message.guild, msg)
 
-    await message.message.add_reaction('👍')
+    await message.message.add_reaction(completedReaction)
 
 @client.command()
 @commands.has_permissions(kick_members=True)
 async def setwelcomechannel(message):
     setWelcomeChannel(message.guild, message.channel)
 
-    await message.message.add_reaction('👍')
+    await message.message.add_reaction(completedReaction)
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -260,7 +261,7 @@ async def setwelcomemsg(message):
     msg = message.message.content.replace(message.message.content[:16], "", 1)
     setWelcomeMessage(message.guild, msg)
 
-    await message.message.add_reaction('👍')
+    await message.message.add_reaction(completedReaction)
 
 @client.command(aliases=['config'])
 async def configuration(message):
@@ -284,7 +285,7 @@ async def configuration(message):
     else:
         welcomeMsg = data.welcomeMsg
 
-    embedVar = discord.Embed(title=message.guild.name+" Server Configuration", description="", color=embedColour)
+    embedVar = discord.Embed(title="{serverName} Configuration".format(serverName=message.guild.name), description="", color=embedColour)
     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=message.guild.icon_url)   
     embedVar.add_field(name="Welcome message", value=welcomeMsg, inline=False)
@@ -292,56 +293,6 @@ async def configuration(message):
     embedVar.add_field(name="Level up message", value=lvlUpMsg, inline=False)
     embedVar.add_field(name="Level up channel", value=lvlUpChannelName, inline=False)
     await message.channel.send(embed=embedVar)    
-
-#Mod
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def warn(message, member:discord.Member):
-    if member != None:
-        if member.id != message.author.id:
-            await warnMember(message, member)
-        else:
-            await message.channel.send("That's you dumb dumb")
-    else:
-        await message.channel.send(str(member) + " isn't a member bro")
-
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def pardon(message, member:discord.Member):
-    members = loadMemberData(message.guild)
-
-    if str(member) not in members:
-        return
-
-    members[str(member)].warns = 0
-    await message.message.add_reaction('👍')
-
-    saveMemberData()
-
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def pardonall(message):
-    members = loadMemberData(message.guild)
-
-    for member in members:
-        if members[member] == None:
-            return
-        members[member].warns = 0
-    
-    await message.message.add_reaction('👍')
-
-    saveMemberData()
-
-@client.command()
-@commands.has_permissions(kick_members=True)
-async def mute(message, member:discord.Member, time:int):
-    if member == client.user:
-        await message.channel.send("Why are you trying to mute me")
-        return
-
-    await muteMember(message.guild, member, time, message.channel)
-
-    await message.message.add_reaction('👍')
 
 #Lvls
 @client.command(aliases=['lvl'])
@@ -405,7 +356,7 @@ async def on_command_error(message, error):
     elif isinstance(error, commands.CommandOnCooldown):
         if error.cooldown.per > 3600:
             cooldown = "**"+str(int(error.cooldown.per/3600))+"** hour"
-        elif int(error.cooldown.per) > 60:
+        elif error.cooldown.per > 60:
             cooldown = "**"+str(int(error.cooldown.per/60))+"** minute"
         else:
             cooldown = "**"+str(int(error.cooldown.per))+"** second"
@@ -437,48 +388,8 @@ def loadMemberData(guild):
         return memberUnpickledData[str(guild)]
 def saveMemberData():
     with open(memberDataFilename, "wb") as file:
-        pickle.dump(setupUnpickledData, file)
-async def muteMember(guild, member, muteTime, channel):
-    mutedRole = discord.utils.get(guild.roles, name="Muted")
+        pickle.dump(memberUnpickledData, file)
 
-    if not mutedRole:
-        mutedRole = await guild.create_role(name="Muted")
-
-        for channel in guild.channels:
-            await channel.set_permissions(mutedRole, speak=False, send_messages=False, read_messages=False)
-
-    await member.add_roles(mutedRole, reason=None)
-    await channel.send("RIP "+member.mention+" was muted for " + str(muteTime) + " seconds :/")
-
-    await asyncio.sleep(muteTime)
-
-    await member.remove_roles(mutedRole)
-#Warns
-async def warnMember(message, member:discord.Member):
-    if member != None:
-        if member.id != client.user.id:
-            if member.id != message.guild.owner_id and member.id:
-                members = loadMemberData(message.guild)
-
-                members[str(member)].warns += 1
-
-                if members[str(member)].warns >= 3 and member.id != message.guild.owner_id:
-                    try:
-                        await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe reread the rules")
-                    except:
-                        pass
-                    members[str(member)].warns = 0
-                    await member.kick(reason=None)
-                else:
-                    await message.channel.send(member.mention + ' you have been warned! ' + str(members[str(member)].warns) + "/3")
-                
-                saveMemberData()
-            else:
-                await message.channel.send(member.name + " is the owner, he wouldn't break his own rules so he is immune")
-        else:
-            await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
-    else:
-        await message.channel.send(str(member) + " doesn't exist bro")
 #Levels
 async def giveMemberXP(xpAmount, message):
     if message.author.bot:
