@@ -38,10 +38,10 @@ async def leaderboard(message):
     sortedData = list(sorted(currencyUnpickledData.items(), key = lambda kv: kv[1].rank))
     
     embedVar = discord.Embed(title="Currency Leaderboard", description="", color=embedColour)
-    embedVar.set_footer(text="You are #{rank}", icon_url=message.author.avatar_url)
+    embedVar.set_footer(text="You are #{rank}".format(rank=currencyUnpickledData[str(message.author)].rank), icon_url=message.author.avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     for data in sortedData[:3]:
-        embedVar.add_field(name="#{rank} {name}".format(rank=str(data[1].rank), name=data[0][:-5]), value="Net worth: {netWorth} zbucks".format(netWorth=str(data[1].netWorth)), inline=False)
+        embedVar.add_field(name="#{rank} - {name}".format(rank=str(data[1].rank), name=data[0][:-5]), value="Net worth: {netWorth} zbucks".format(netWorth=str(data[1].netWorth)), inline=False)
 
     await message.channel.send(embed=embedVar)
 
@@ -237,7 +237,7 @@ async def give(message, member:discord.Member, input:str):
             return
         
         if itemName not in member1Data.inventory:
-            await message.channel.send("Lol nice try, you don't have that item")
+            await message.channel.send(doesntHaveItemError)
             await message.message.add_reaction(errorReaction)
             return
 
@@ -275,7 +275,7 @@ async def use(message):
     elif itemName not in items:
         await message.channel.send(nonExistentItemError(itemName))
     else:
-        await message.channel.send("Lol nice try, you don't have that item")
+        await message.channel.send(doesntHaveItemError)
 
 @client.command(aliases=["inv"])
 async def inventory(message, member:typing.Optional[discord.Member]):

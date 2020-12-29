@@ -16,9 +16,9 @@ async def warn(message, member:discord.Member):
         if member.id != message.author.id:
             await warnMember(member, message)
         else:
-            await message.channel.send(badSelfActionError())
+            await message.channel.send(badSelfActionError)
     else:
-        await message.channel.send(str(member) + " isn't a member bro")
+        await "{member} isn't a member bro".format(member=message.channel.send(str(member)))
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -54,13 +54,13 @@ async def mute(message, member:discord.Member, time:typing.Optional[int]):
         await message.channel.send("Why are you trying to mute me")
         return
     if member == message.author:
-        await message.channel.send(badSelfActionError())
+        await message.channel.send(badSelfActionError)
         return
     
     if time == None or time == 0:
-        await message.channel.send(member.mention+" was muted indefinitely")
+        await message.channel.send("{member} was muted indefinitely".format(member=member.mention))
     else:
-        await message.channel.send(member.mention+" was muted for **"+str(time)+"** seconds")
+        await message.channel.send("{member} was muted for **{time}** seconds".format(member=member.mention, time=str(time)))
 
     await muteMember(member, time, message.channel)
 
@@ -77,7 +77,7 @@ async def unmute(message, member:discord.Member):
     
     await member.remove_roles(mutedRole)
 
-    await message.channel.send(member.mention+" was unmuted")
+    await message.channel.send("{member} was unmuted".format(member=member.mention))
     await message.message.add_reaction(completedReaction)
 
 
@@ -129,12 +129,12 @@ async def warnMember(member, message):
                     members[str(member)] = 0
                     await member.kick(reason=None)
                 else:
-                    await message.channel.send(member.mention + ' you have been warned! **' + str(members[str(member)]) + "/3**")
+                    await message.channel.send("{member} you have been warned! **{warns}/3**".format(member=member.mention, warns=str(members[str(member)])))
                 
                 saveData(members)
             else:
-                await message.channel.send(member.display_name + " is the owner, he wouldn't break his own rules so he is immune")
+                await message.channel.send("{member} is the owner, he wouldn't break his own rules so he is immune".format(member=member.display_name))
         else:
             await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
     else:
-        await message.channel.send("**"+str(member)+ "** doesn't exist bro")
+        await message.channel.send("**{member}** doesn't exist bro".format(member=str(member)))

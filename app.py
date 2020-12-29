@@ -16,7 +16,7 @@ import requests
 from currency import leaderboard, deposit, buy, balance, buy, daily, give, inventory, steal, shop, withdraw
 from moderator import warn, pardon, pardonall, mute
 from io import BytesIO
-from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction
+from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, badArgsError, badBotPermsError, badMemberPermsError, nonExistentCommandError
 
 class MemberData:
     def __init__(self, warns, xp, level, rank, levelUpThreshold):
@@ -305,9 +305,9 @@ async def level(message, member:typing.Optional[discord.Member]):
     embedVar = discord.Embed(title="", description="", color=embedColour)
     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=member.avatar_url)  
-    embedVar.add_field(name="XP", value=str(memberInfo.xp)+"/"+str(memberInfo.levelUpThreshold), inline=False)
+    embedVar.add_field(name="XP", value="{xp}/{max}".format(xp=str(memberInfo.xp), max=str(memberInfo.levelUpThreshold)), inline=False)
     embedVar.add_field(name="Level", value=str(memberInfo.level), inline=False)
-    embedVar.add_field(name="Rank", value="#" + str(memberInfo.rank), inline=False)
+    embedVar.add_field(name="Rank", value="#{rank}".format(rank=str(memberInfo.rank)), inline=False)
     await message.channel.send(embed=embedVar)
 
 @client.command(aliases=['lvls'])
@@ -320,7 +320,7 @@ async def levels(message):
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.icon_url))
 
     for memberName, data in sortedMembers:
-        embedVar.add_field(name='#'+str(data.rank)+' - '+memberName, value='level '+str(data.level), inline=False)
+        embedVar.add_field(name="#{rank} - {memberName}".format(rank=str(data.rank), memberName=memberName), value="level {level}".format(level=str(data.level)), inline=False)
 
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
 
@@ -350,28 +350,28 @@ async def on_member_join(member):
 @client.event
 async def on_command_error(message, error):
     if isinstance(error, commands.MissingPermissions):
-        await message.channel.send("You don't have the perms to use that command :/")
+        await message.channel.send(badMemberPermsError)
     elif isinstance(error, commands.MissingRequiredArgument):
-        await message.channel.send("You haven't provided the required amount of arguments, try looking at the help menu with `z help`")
+        await message.channel.send(badArgsError)
     elif isinstance(error, commands.CommandOnCooldown):
         if error.cooldown.per > 3600:
-            cooldown = "**"+str(int(error.cooldown.per/3600))+"** hour"
+            cooldown = "**{cooldown}** hour".format(cooldown=str(int(error.cooldown.per/3600)))
         elif error.cooldown.per > 60:
-            cooldown = "**"+str(int(error.cooldown.per/60))+"** minute"
+            cooldown = "**{cooldown}** minute".format(str(int(error.cooldown.per/60)))
         else:
-            cooldown = "**"+str(int(error.cooldown.per))+"** second"
+            cooldown = "**{cooldown}** second".format(str(int(error.cooldown.per)))
         if error.retry_after > 3600:
-            retryAfter = "**"+str(int(error.retry_after/3600))+"** hours"
+            retryAfter = "**{cooldown}** hours".format(str(int(error.retry_after/3600)))
         elif int(error.retry_after) > 60:
-            retryAfter = "**"+str(int(error.retry_after/60))+"** minutes"
+            retryAfter = "**{cooldown}** minutes".format(str(int(error.retry_after/60)))
         else:
-            retryAfter = "**"+str(int(error.retry_after))+"** seconds"
+            retryAfter = "**{cooldown}** seconds".format(cooldown=str(int(error.retry_after)))
         
-        await message.channel.send("Woah slow down there man, that command has a "+str(cooldown)+" cooldown. Try again in "+str(retryAfter))
+        await message.channel.send("Woah slow down there man, that command has a {cooldown} cooldown. Try again in {retryAfter}".format(cooldown=str(cooldown), retryAfter=str(retryAfter)))
     elif isinstance(error, commands.BotMissingPermissions):
-        await message.channel.send("I don't have the perms to do that :/")
+        await message.channel.send(badBotPermsError)
     elif isinstance(error, commands.CommandNotFound):
-        await message.channel.send("That's not a command, lol")
+        await message.channel.send(nonExistentCommandError)
 
 #Functions
 async def assignRole(role, user):
@@ -412,7 +412,7 @@ async def giveMemberXP(xpAmount, message):
         msg = setupData.lvlUpMsg
         lvlUpMsg = None
         if msg != None:
-            lvlUpMsg = msg.replace('[mention]', "**"+message.author.mention+"**")
+            lvlUpMsg = msg.replace('[mention]', "**{mention}**".format(mention=message.author.mention))
             # memberInfo = await getMemberInfo(message, message.author)
             # lvlUpMsg = lvlUpMsg.replace('[level]',  str(memberInfo.level))
             lvlUpMsg = lvlUpMsg.replace('[level]',  str(members[str(message.author)].level))
@@ -420,7 +420,7 @@ async def giveMemberXP(xpAmount, message):
         if channel == None:
             channel = message.channel
         if lvlUpMsg == "":
-            lvlUpMsg = ("**" + message.author.mention + "** you leveled up! You are now level " + str(members[str(message.author)].level))
+            lvlUpMsg = ("**{mention}** you leveled up! You are now level {level}".format(mention=message.author.mention, level=str(members[str(message.author)].level)))
         await channel.send(lvlUpMsg)
 
     setMemberRanks(message, message.guild)

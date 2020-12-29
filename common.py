@@ -22,8 +22,13 @@ def tryLoadSavedDict(filename):
     else:
         return dict()
 
-def badSelfActionError():
-    return "That's you dum dum"
 
+#Command errors
+badSelfActionError = "That's you dum dum"
+nonExistentCommandError = "That's not a command, lol"
+badMemberPermsError = "You don't have the perms to use that command :/"
+badBotPermsError = "I don't have the perms to do that :/"
+badArgsError = "You haven't provided the required amount of arguments, try looking at the help menu with `z help`"
+nullItemError = "Lol nice try, you don't have that item"
 def nonExistentItemError(itemName):
     return "What the heck is a **{item}**".format(item=itemName)
