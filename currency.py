@@ -406,16 +406,21 @@ def tryParseInt(input):
 
 #Work challenges
 async def memoryChallenge(message):
-    thingsToRemember = ["zacoons bot discord", "potato pineapple broccoli"]
-    rand = random.choice(thingsToRemember)
-    msg = await message.channel.send("Remember these words: `"+rand+"`")
+    words = ["zacoons", "bot", "discord", "potato", "pineapple", "broccoli"]
+    random.shuffle(words)
+    word1 = words[0]
+    word2 = words[1]
+    word3 = words[2]
+    thingToRemember = "{word1} {word2} {word3}".format(word1=word1, word2=word2, word3=word3)
+    msg = await message.channel.send("Remember these words: `{thingToRemember}`".format(thingToRemember=thingToRemember))
     await asyncio.sleep(5)
     await msg.edit(content="Now type the words in the chat below")
 
     def check(m):
         return m.channel == msg.channel and m.author == message.author
     response = await client.wait_for("message", check=check)
-    if response.content.lower() == rand:
+    responseWords = response.content.split()
+    if responseWords[0] == word1 and responseWords[1] == word2 and responseWords[2] == word3:
         await response.add_reaction(completedReaction)
         return True
     else:
@@ -423,8 +428,15 @@ async def memoryChallenge(message):
         return False
 
 async def scrambleChallenge(message):
-    scrambledWords = ["optato", "pniaeppel", "borccloi", "mlki"]
     unscrambledWords = ["potato", "pineapple", "broccoli", "milk"]
+    scrambledWords = []
+    i = 0
+    for word in unscrambledWords:
+        word = list(word)
+        random.shuffle(word)
+        word = ''.join(word)
+        scrambledWords.append(word)
+        i += 1
     rand = random.randint(0, len(scrambledWords))
     msg = await message.channel.send("Unscramble this word: `"+scrambledWords[rand]+"`")
 
@@ -437,6 +449,7 @@ async def scrambleChallenge(message):
     else:
         await response.add_reaction(errorReaction)
         return False
+
 
 
 #Item commands
