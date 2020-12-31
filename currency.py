@@ -4,7 +4,7 @@ import pickle
 import random
 import asyncio
 import typing
-from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, nonExistentItemError, badSelfActionError
+from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, nonExistentItemError, badSelfActionError, nullItemError, notEnoughItemsError
 import datetime
 
 class CurrencyData:
@@ -16,7 +16,10 @@ class CurrencyData:
         self.inventory = inventory
     @property
     def netWorth(self):
-        return self.wallet + self.bank
+        netWorth = self.wallet + self.bank
+        for item in self.inventory:
+            netWorth += items[item].cost
+        return netWorth
 
 class Item:
     def __init__(self, description, icon, cost, use, cooldown):
@@ -76,7 +79,7 @@ async def work(message):
 
     member.wallet += amount
     if getsBonusItem == 0:
-        giveMemberItem(member, itemName)
+        giveMemberItems(member, itemName, 1)
         await message.channel.send("Well done, you earned **{amount}** zbucks. You also found a **{item}**".format(amount=str(amount), item=itemName))
     else:
         await message.channel.send("Well done, you earned **{amount}** zbucks".format(amount=str(amount)))
@@ -84,23 +87,38 @@ async def work(message):
     saveCurrencyData()
 
 @client.command()
-async def buy(message, itemName:str):
+async def buy(message):
     member = loadCurrencyData(message.author)
-    itemName = message.message.content.lower().replace("z buy ", "")
+    itemName = message.message.content.lower()[6:]
+    itemName = ''.join([i for i in itemName if not i.isdigit()])
+    amount = tryParseInt(message.message.content.lower()[6:].replace(itemName, ""))
+    if amount[0] == True:
+        itemName = itemName[:-1]
+        amount = amount[1]
+    else:
+        amount = 1
+
+    if amount < 0:
+        await message.channel.send("You can't buy negative items lol")
+        await message.message.add_reaction(errorReaction)
+        return
 
     if itemName not in items:
         await message.channel.send(nonExistentItemError(itemName))
         await message.message.add_reaction(errorReaction)
         return
-    if member.wallet < items[itemName].cost:
+    if member.wallet < items[itemName].cost or items[itemName].cost * amount > member.wallet:
         await message.channel.send("You don't have enough money for that my dude, type `z work` to earn yourself some zbucks")
         await message.message.add_reaction(errorReaction)
         return
     
-    giveMemberItem(member, itemName)
-    member.wallet -= items[itemName].cost
+    giveMemberItems(member, itemName, amount)
+    member.wallet -= items[itemName].cost * amount
     
-    await message.channel.send("You just bought a **{item}** for **{cost}** zbucks".format(item=itemName, cost=str(items[itemName].cost)))
+    if amount == 1:
+        await message.channel.send("You just bought a **{item}** for **{cost}** zbucks".format(item=itemName, cost=str(items[itemName].cost)))
+    else:
+        await message.channel.send("You just bought **{amount}** **{item}s** for **{cost}** zbucks".format(amount=str(amount), item=itemName, cost=str(items[itemName].cost)))
 
     saveCurrencyData()
 
@@ -165,7 +183,7 @@ async def withdraw(message, amount:str):
 @commands.cooldown(1, 300, commands.BucketType.user)
 async def steal(message, member:discord.Member):
     if member == message.author:
-        message.channel.send(badSelfActionError())
+        message.channel.send(badSelfActionError)
         await message.message.add_reaction(errorReaction)
         return
     
@@ -198,15 +216,16 @@ async def steal(message, member:discord.Member):
     saveCurrencyData()
 
 @client.command()
-async def give(message, member:discord.Member, input:str):
+async def give(message, member:discord.Member):
     if member.bot:
         await message.channel.send("You can't give stuff to bots dood")
         return
 
+    input = message.message.content[7:].replace("{member} ".format(member=member.mention), "")
     isInt, intValue = tryParseInt(input)
 
     if member == message.author:
-        await message.channel.send(badSelfActionError())
+        await message.channel.send(badSelfActionError)
         await message.message.add_reaction(errorReaction)
         return
     
@@ -230,6 +249,12 @@ async def give(message, member:discord.Member, input:str):
         await message.channel.send("You just gave **"+str(intValue)+"** zbucks to "+member.mention+". What a lucky guy :D")
     else:
         itemName = message.message.content[30:]
+        itemName = ''.join([i for i in itemName if not i.isdigit()])[:-1]
+        amount = tryParseInt(message.message.content[7:].replace("{member} {itemName} ".format(member=member.mention, itemName=itemName), ""))
+        if amount[0] == True:
+            amount = amount[1]
+        else:
+            amount = 1
 
         if itemName not in items:
             await message.channel.send(nonExistentItemError(itemName))
@@ -237,13 +262,26 @@ async def give(message, member:discord.Member, input:str):
             return
         
         if itemName not in member1Data.inventory:
-            await message.channel.send(doesntHaveItemError)
+            await message.channel.send(nullItemError)
+            await message.message.add_reaction(errorReaction)
+            return
+        
+        if member1Data.inventory[itemName] < amount:
+            await message.channel.send(notEnoughItemsError)
+            await message.message.add_reaction(errorReaction)
+            return
+        
+        if amount < 0:
+            await message.channel.send("You can't give negative items lol")
             await message.message.add_reaction(errorReaction)
             return
 
-        removeMemberItem(member1Data, itemName)
-        giveMemberItem(member2Data, itemName)
-        await message.channel.send("You just gave a **"+itemName+"** to "+member.mention)
+        removeMemberItems(member1Data, itemName, amount)
+        giveMemberItems(member2Data, itemName, amount)
+        if amount == 1:
+            await message.channel.send("You just gave a **{itemName}** to {member}".format(itemName=itemName, member=member.mention))
+        else:
+            await message.channel.send("You just gave **{amount}** **{itemName}s** to {member}".format(amount=str(amount), itemName=itemName, member=member.mention))
 
     saveCurrencyData()
     await message.message.add_reaction(completedReaction)
@@ -254,28 +292,41 @@ async def daily(message):
     coinAmount = random.randint(20, 50)
     member = loadCurrencyData(message.author)
     member.wallet += coinAmount
-    giveMemberItem(member, "bank note")
+    giveMemberItems(member, "bank note", 1)
     await message.channel.send("Your daily reward is **"+str(coinAmount)+"** zbucks and a **bank note**")
     saveCurrencyData()
 
 @client.command()
 async def use(message):
     member = loadCurrencyData(message.author)
-    itemName = message.message.content.lower().replace("z use ", "")
-    if itemName in member.inventory:
-        # useFunc = commands.cooldown(1, items[itemName].cooldown, commands.BucketType.user)(items[itemName].use)
-        # await useFunc(member=message.author, channel=message.channel)
-        # decoratedUse = cooldown(items[itemName].cooldown)(items[itemName].use)
-        # await items[itemName].use(member=message.author, channel=message.channel)
-        # await decoratedUse(member=message.author, channel=message.channel)
-
-        if cooldown(message, items[itemName].use, items[itemName].cooldown):
-            await items[itemName].use(member=message.author, channel=message.channel)
-
-    elif itemName not in items:
-        await message.channel.send(nonExistentItemError(itemName))
+    itemName = message.message.content.lower()[6:]
+    itemName = ''.join([i for i in itemName if not i.isdigit()])
+    amount = tryParseInt(message.message.content.lower()[6:].replace(itemName, ""))
+    if amount[0] == True:
+        itemName = itemName[:-1]
+        amount = amount[1]
     else:
-        await message.channel.send(doesntHaveItemError)
+        amount = 1
+
+    if amount == 0 or amount == None:
+        amount = 1
+    if amount < 0:
+        await message.channel.send("You can't use negative items lol")
+        return
+    if member.inventory[itemName] < amount:
+        await message.channel.send(notEnoughItemsError)
+        return
+    
+    if itemName not in items:
+        await message.channel.send(nonExistentItemError(itemName))
+        return
+    if itemName not in member.inventory:
+        await message.channel.send(nullItemError)
+    
+    if itemName in member.inventory:
+        if cooldown(message, items[itemName].use, items[itemName].cooldown):
+            await items[itemName].use(member=message.author, channel=message.channel, amount=amount)
+
 
 @client.command(aliases=["inv"])
 async def inventory(message, member:typing.Optional[discord.Member]):
@@ -355,7 +406,7 @@ def tryParseInt(input):
 
 #Work challenges
 async def memoryChallenge(message):
-    thingsToRemember = ["guppti tamberooly joortelsk", "potato pineapple broccoli"]
+    thingsToRemember = ["zacoons bot discord", "potato pineapple broccoli"]
     rand = random.choice(thingsToRemember)
     msg = await message.channel.send("Remember these words: `"+rand+"`")
     await asyncio.sleep(5)
@@ -389,14 +440,20 @@ async def scrambleChallenge(message):
 
 
 #Item commands
-def giveMemberItem(member, itemName):
+def giveMemberItems(member, itemName, amount):
+    if amount == 0 or amount == None:
+        amount = 1
+    
     if itemName not in member.inventory:
-        member.inventory[itemName] = 1
+        member.inventory[itemName] = amount
     else:
-        member.inventory[itemName] += 1
+        member.inventory[itemName] += amount
     saveCurrencyData()
 
-def removeMemberItem(member, itemName):
+def removeMemberItems(member, itemName, amount):
+    if amount == 0 or amount == None:
+        amount = 1
+    
     member.inventory[itemName] -= 1
     if member.inventory[itemName] <= 0:
         member.inventory.pop(itemName)
@@ -404,24 +461,41 @@ def removeMemberItem(member, itemName):
 
 async def useChristmasBox(**kwargs):
     member = loadCurrencyData(kwargs["member"])
-    removeMemberItem(member, "christmas box")
-    msg = await kwargs["channel"].send(":sparkles: Opening "+kwargs["member"].mention+"'s **Christmas Box** :sparkles:")
+    amount = kwargs["amount"]
+    if amount == 1:
+        msg = await kwargs["channel"].send(":sparkles: Opening {member}'s **Christmas Box** :sparkles:".format(member=kwargs["member"].mention))
+    else:
+        msg = await kwargs["channel"].send(":sparkles: Opening **{amount}** of {member}'s **Christmas Boxes** :sparkles:".format(amount=amount, member=kwargs["member"].mention))
+    zbucks = 0
+    i = amount
+    while i > 0:
+        removeMemberItems(member, "christmas box", 1)
+        zbucks += random.randint(75, 200)
+        member = loadCurrencyData(kwargs["member"])
+        i -= 1
     await asyncio.sleep(3)
-    zbucks = random.randint(75, 200)
-    member = loadCurrencyData(kwargs["member"])
     member.wallet += zbucks
-    await msg.edit(content=kwargs["member"].mention+" you got **"+str(zbucks)+"** zbucks from your christmas box")
-    kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
+    if amount == 1:
+        endMsg = "{member} you got **{amount}** zbucks from your christmas box".format(member=kwargs["member"].mention, amount=str(zbucks))
+    else:
+        endMsg = "{member} you got **{amount}** zbucks from your christmas boxes".format(member=kwargs["member"].mention, amount=str(zbucks))
+    await msg.edit(content=endMsg, amount=str(zbucks))
     saveCurrencyData()
 
 async def useBankNote(**kwargs):
     member = loadCurrencyData(kwargs["member"])
-    removeMemberItem(member, "bank note")
-    amount = random.randint(20, 50)
-    member.bankSize += amount
-    await kwargs["channel"].send("Your bank size has been increased by **"+str(amount)+"** zbucks")
-    kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
-    saveCurrencyData()
+    amount = kwargs["amount"]
+    i = amount
+    while i > 0:
+        removeMemberItems(member, "bank note", 1)
+        increase = random.randint(20, 50)
+        member.bankSize += increase
+        saveCurrencyData()
+        i -= 1
+    if amount > 1:
+        await kwargs["channel"].send("You used **{amount}** bank notes and your bank size was increased by **{increase}** zbucks".format(amount=str(amount), increase=str(increase)))
+    else:
+        await kwargs["channel"].send("Your bank size was increased by **{increase}** zbucks".format(increase=str(increase)))
 
 async def useRifle(**kwargs):
     member = loadCurrencyData(kwargs["member"])

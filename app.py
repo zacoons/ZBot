@@ -107,7 +107,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
         embedVar.add_field(name="`z deposit [Amount](Can be 'all' or a number)`", value="(AKA dep) Deposits your money in the bank for safekeeping", inline=False)
-        embedVar.add_field(name="`z buy [Item]`", value="Buys an item with the name given", inline=False)
+        embedVar.add_field(name="`z buy [Item] [Amount](Optional)`", value="Buys an item with the name given", inline=False)
         embedVar.add_field(name="`z withdraw [Amount](Can be 'all' or a number)`", value="(AKA with) Takes your money out of the bank to use", inline=False)
         embedVar.add_field(name="`z steal [Member]`", value="(5 min cooldown)(AKA rob) Steals a member's coins... Or not", inline=False)
         embedVar.add_field(name="`z give [Member] [Amount/Item]`", value="Give a member some coins or an item", inline=False)
@@ -357,13 +357,13 @@ async def on_command_error(message, error):
         if error.cooldown.per > 3600:
             cooldown = "**{cooldown}** hour".format(cooldown=str(int(error.cooldown.per/3600)))
         elif error.cooldown.per > 60:
-            cooldown = "**{cooldown}** minute".format(str(int(error.cooldown.per/60)))
+            cooldown = "**{cooldown}** minute".format(cooldown=str(int(error.cooldown.per/60)))
         else:
-            cooldown = "**{cooldown}** second".format(str(int(error.cooldown.per)))
+            cooldown = "**{cooldown}** second".format(cooldown=str(int(error.cooldown.per)))
         if error.retry_after > 3600:
-            retryAfter = "**{cooldown}** hours".format(str(int(error.retry_after/3600)))
+            retryAfter = "**{cooldown}** hours".format(cooldown=str(int(error.retry_after/3600)))
         elif int(error.retry_after) > 60:
-            retryAfter = "**{cooldown}** minutes".format(str(int(error.retry_after/60)))
+            retryAfter = "**{cooldown}** minutes".format(cooldown=str(int(error.retry_after/60)))
         else:
             retryAfter = "**{cooldown}** seconds".format(cooldown=str(int(error.retry_after)))
         
