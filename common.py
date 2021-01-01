@@ -7,11 +7,12 @@ prefixes = 'z ', 'Z '
 client = commands.Bot(command_prefix=prefixes)
 client.remove_command('help')
 embedColour = 0x6495ED
-embedFooters = ["Potato Gang is good, Pineapple Gang is evil",
+def embedFooters():
+    return ["Potato Gang is good, Pineapple Gang is evil",
         "Check out the creator's server at: https://discord.gg/9nP75tN",
         "Add ZBot to your server at: zacoons.com/code/zbot",
         "Made by Zacoons, feel free to join his server: https://discord.gg/9nP75tN",
-        "Watching over "+str(len(client.guilds))+" servers for free"]
+        "Watching over {serverCount} servers for free".format(serverCount=str(len(client.guilds)))]
 completedReaction = '✅'
 errorReaction = '❌'
 

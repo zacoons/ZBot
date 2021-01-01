@@ -53,7 +53,7 @@ async def on_ready():
 async def help(message, helpType:typing.Optional[str]):
     if helpType == None:
         embedVar = discord.Embed(title="ZBot Help", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.set_footer(text=random.choice((embedFooters())), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="Setup", value="`z help setup`")
         embedVar.add_field(name="Levels", value="`z help lvls`")
@@ -63,7 +63,7 @@ async def help(message, helpType:typing.Optional[str]):
         await message.channel.send(embed=embedVar)
     elif helpType == "setup":
         embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="`z setlvlupchannel [Channel]`", value="Sets a specific channel for the level up message", inline=False)
         embedVar.add_field(name="`z setlvlupmsg [Message]`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
@@ -73,7 +73,7 @@ async def help(message, helpType:typing.Optional[str]):
         await message.channel.send(embed=embedVar)
     elif helpType == "mod":
         embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
         embedVar.add_field(name="`z pardon [Member]`", value="(Moderators only) Clears a member's warns", inline=False)
@@ -82,7 +82,7 @@ async def help(message, helpType:typing.Optional[str]):
         await message.channel.send(embed=embedVar)
     elif helpType == "misc":
         embedVar = discord.Embed(title="ZBot Other Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="`z slap [Member]`", value="Slaps someone", inline=False)
         embedVar.add_field(name="`z hug [Member]`", value="Hugs someone", inline=False)
@@ -95,14 +95,14 @@ async def help(message, helpType:typing.Optional[str]):
         await message.channel.send(embed=embedVar)
     # elif helpType == "lvls":
     #     embedVar = discord.Embed(title="ZBot Level Commands", description="", color=embedColour)
-    #     embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    #     embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     #     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
     #     embedVar.add_field(name="`z level [Username](Optional)`", value="(AKA lvl) Tells you your/someone else's level and xp", inline=False)
     #     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
     #     await message.channel.send(embed=embedVar)
     elif helpType == "currency":
         embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
@@ -286,7 +286,7 @@ async def configuration(message):
         welcomeMsg = data.welcomeMsg
 
     embedVar = discord.Embed(title="{serverName} Configuration".format(serverName=message.guild.name), description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=message.guild.icon_url)   
     embedVar.add_field(name="Welcome message", value=welcomeMsg, inline=False)
     embedVar.add_field(name="Welcome channel", value=welcomeChannelName, inline=False)
@@ -303,7 +303,7 @@ async def level(message, member:typing.Optional[discord.Member]):
     memberInfo = await getMemberInfo(message, member)
 
     embedVar = discord.Embed(title="", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=member.avatar_url)  
     embedVar.add_field(name="XP", value="{xp}/{max}".format(xp=str(memberInfo.xp), max=str(memberInfo.levelUpThreshold)), inline=False)
     embedVar.add_field(name="Level", value=str(memberInfo.level), inline=False)
@@ -316,7 +316,7 @@ async def levels(message):
     sortedMembers = sorted(members.items(), key = lambda kv: kv[1].rank)
 
     embedVar = discord.Embed(title="Levels Leaderboard", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.icon_url))
 
     for memberName, data in sortedMembers:

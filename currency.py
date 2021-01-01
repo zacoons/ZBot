@@ -6,6 +6,7 @@ import asyncio
 import typing
 from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, nonExistentItemError, badSelfActionError, nullItemError, notEnoughItemsError
 import datetime
+from enum import Enum, auto
 
 class CurrencyData:
     def __init__(self, wallet, bank, bankSize, rank, inventory):
@@ -21,13 +22,18 @@ class CurrencyData:
             netWorth += items[item].cost
         return netWorth
 
+class ItemType(Enum):
+    tool = auto()
+    collectable = auto()
+
 class Item:
-    def __init__(self, description, icon, cost, use, cooldown):
+    def __init__(self, description, icon, cost, use, cooldown, type):
         self.description = description
         self.icon = icon
         self.cost = cost
         self.use = use
         self.cooldown = cooldown
+        self.type = type
 
 global items
 global currencyUnpickledData
@@ -56,7 +62,7 @@ async def balance(message, member:typing.Optional[discord.Member]):
     memberInfo = loadCurrencyData(member)
 
     embedVar = discord.Embed(title="", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=member.avatar_url)  
     embedVar.add_field(name="Wallet", value=str(memberInfo.wallet), inline=False)
     embedVar.add_field(name="Bank", value="{bank}/{bankSize}".format(bank=str(memberInfo.bank), bankSize=str(memberInfo.bankSize)), inline=False)
@@ -77,6 +83,7 @@ async def work(message):
     if await challenge(message) == False:
         return
 
+    amount = addMultiplier(member, amount)
     member.wallet += amount
     if getsBonusItem == 0:
         giveMemberItems(member, itemName, 1)
@@ -294,11 +301,12 @@ async def give(message, member:discord.Member):
 @client.command()
 @commands.cooldown(1, 86400, commands.BucketType.user)
 async def daily(message):
-    coinAmount = random.randint(20, 50)
+    amount = random.randint(20, 50)
     member = loadCurrencyData(message.author)
-    member.wallet += coinAmount
+    amount = addMultiplier(member, amount)
+    member.wallet += amount
     giveMemberItems(member, "bank note", 1)
-    await message.channel.send("Your daily reward is **"+str(coinAmount)+"** zbucks and a **bank note**")
+    await message.channel.send("Your daily reward is **{amount}** zbucks and a **bank note**".format(amount=str(amount)))
     saveCurrencyData()
 
 @client.command()
@@ -307,6 +315,10 @@ async def use(message):
     itemName = message.message.content.lower()[6:]
     itemName = ''.join([i for i in itemName if not i.isdigit()])
     amount = tryParseInt(message.message.content.lower()[6:].replace(itemName, ""))
+    if items[itemName].type == ItemType.collectable:
+        await message.channel.send("You can't use that item :/")
+        return
+
     if amount[0] == True:
         itemName = itemName[:-1]
         amount = amount[1]
@@ -338,13 +350,13 @@ async def inventory(message, member:typing.Optional[discord.Member]):
     if member == None:
         member = message.author
 
-    embedVar = discord.Embed(title=member.display_name+"'s Inventory", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar = discord.Embed(title="{member}'s Inventory".format(member=member.display_name), description="", color=embedColour)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=member.avatar_url)  
     
     member = loadCurrencyData(member)
     for itemName in member.inventory:
-        embedVar.add_field(name=items[itemName].icon+" "+itemName+" - "+str(member.inventory[itemName]), value=items[itemName].description, inline=False)
+        embedVar.add_field(name="{icon} {item} - {amount}".format(icon=items[itemName].icon, item=itemName, amount=str(member.inventory[itemName])), value=items[itemName].description, inline=False)
     if member.inventory == dict():
         embedVar.add_field(name="You don't have any items", value="You can go find some by typing the command `z work`")
     
@@ -353,7 +365,7 @@ async def inventory(message, member:typing.Optional[discord.Member]):
 @client.command(aliases=["store"])
 async def shop(message):
     embedVar = discord.Embed(title="ZBot Shop", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
 
     for item in items:
@@ -372,6 +384,25 @@ def loadCurrencyData(member):
         currencyUnpickledData[str(member)] = CurrencyData(0, 0, defaultBankSize, 0, dict())
 
     return currencyUnpickledData[str(member)]
+
+def addMultiplier(member, amount):
+    multiplier = 1
+    if "cool llama token" in member.inventory:
+        index = member.inventory["cool llama token"]
+        while index > 0:
+            multiplier += 0.1
+            index -= 1
+    if "epic llama token" in member.inventory:
+        index = member.inventory["epic llama token"]
+        while index > 0:
+            multiplier += 0.5
+            index -= 1
+    if "legendary llama token" in member.inventory:
+        index = member.inventory["legendary llama token"]
+        while index > 0:
+            multiplier += 1
+            index -= 1
+    return int(amount * multiplier)
 
 def setCurrencyRanks():
     for member in currencyUnpickledData:
@@ -488,7 +519,9 @@ async def useChristmasBox(**kwargs):
     i = amount
     while i > 0:
         removeMemberItems(member, "christmas box", 1)
-        zbucks += random.randint(75, 200)
+        rand = random.randint(75, 200)
+        zbucks = addMultiplier(member, rand)
+        zbucks += rand
         member = loadCurrencyData(kwargs["member"])
         i -= 1
     await asyncio.sleep(3)
@@ -519,6 +552,7 @@ async def useBankNote(**kwargs):
 async def useRifle(**kwargs):
     member = loadCurrencyData(kwargs["member"])
     amount = random.randint(20, 50)
+    amount = addMultiplier(member, amount)
     member.wallet += amount
     responses=["You shot a rabbit and sold it for **"+str(amount)+"** zbucks",
     "You shot a skunk and sold it for **"+str(amount)+"** zbucks",]
@@ -526,9 +560,12 @@ async def useRifle(**kwargs):
     kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
 
-items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:791481944721326101>", 150, useChristmasBox, 0),
-'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:791501673930948629>", 50, useBankNote, 0),
-'rifle': Item("Use `z use rifle` to go on a hunt and earn some zbucks, this item also protects you from being robbed", "<:rifle:791501684861829151>", 250, useRifle, 60)}
+items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:794434356290387989>", 150, useChristmasBox, 0, ItemType.tool),
+'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:794434356549517312>", 50, useBankNote, 0, ItemType.tool),
+'rifle': Item("Use `z use rifle` to go on a hunt and earn some zbucks, this item also protects you from being robbed", "<:rifle:794447075831316513>", 250, useRifle, 60, ItemType.tool),
+'cool llama token': Item("Boosts how many zbucks you earn through any command by 10%", "<:coolllamatoken:794457418654285824>", 150, None, 0, ItemType.collectable),
+'epic llama token': Item("Boosts how many zbucks you earn through any command by 50%", "<:epicllamatoken:794457418637246484>", 500, None, 0, ItemType.collectable),
+'legendary llama token': Item("Boosts how many zbucks you earn through any command by 10%", "<:legendaryllamatoken:794457418611294249>", 1000, None, 0, ItemType.collectable)}
 
 currencyDataFilename = "currencyData.pickle"
 currencyUnpickledData = tryLoadSavedDict(currencyDataFilename)
