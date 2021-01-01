@@ -317,6 +317,7 @@ async def use(message):
     amount = tryParseInt(message.message.content.lower()[6:].replace(itemName, ""))
     if items[itemName].type == ItemType.collectable:
         await message.channel.send("You can't use that item :/")
+        await message.message.add_reaction(errorReaction)
         return
 
     if amount[0] == True:
@@ -325,25 +326,67 @@ async def use(message):
     else:
         amount = 1
 
-    if amount == 0 or amount == None:
-        amount = 1
     if amount < 0:
         await message.channel.send("You can't use negative items lol")
+        await message.message.add_reaction(errorReaction)
         return
     if member.inventory[itemName] < amount:
         await message.channel.send(notEnoughItemsError)
+        await message.message.add_reaction(errorReaction)
         return
     
     if itemName not in items:
         await message.channel.send(nonExistentItemError(itemName))
+        await message.message.add_reaction(errorReaction)
         return
     if itemName not in member.inventory:
         await message.channel.send(nullItemError)
+        await message.message.add_reaction(errorReaction)
+        return
     
     if itemName in member.inventory:
         if cooldown(message, items[itemName].use, items[itemName].cooldown):
             await items[itemName].use(member=message.author, channel=message.channel, amount=amount)
 
+@client.command()
+async def sell(message):
+    member = loadCurrencyData(message.author)
+    itemName = message.message.content.lower()[7:]
+    itemName = ''.join([i for i in itemName if not i.isdigit()])
+    amount = tryParseInt(message.message.content.lower()[7:].replace(itemName, ""))
+
+    if amount[0] == True:
+        itemName = itemName[:-1]
+        amount = amount[1]
+    else:
+        amount = 1
+
+    if amount < 0:
+        await message.channel.send("You can't sell negative items lol")
+        await message.message.add_reaction(errorReaction)
+        return
+    if member.inventory[itemName] < amount:
+        await message.channel.send(notEnoughItemsError)
+        await message.message.add_reaction(errorReaction)
+        return
+    
+    if itemName not in items:
+        await message.channel.send(nonExistentItemError(itemName))
+        await message.message.add_reaction(errorReaction)
+        return
+    if itemName not in member.inventory:
+        await message.channel.send(nullItemError)
+        await message.message.add_reaction(errorReaction)
+        return
+
+    removeMemberItems(member, itemName, amount)
+    zbucks = items[itemName].cost * amount
+    member.wallet += zbucks
+
+    if amount == 1:
+        await message.channel.send("You just sold a **{itemName}** for **{zbucks}** zbucks".format(itemName=itemName, zbucks=zbucks))
+    else:
+        await message.channel.send("You just sold **{amount} {itemName}s** for **{zbucks}** zbucks".format(amount=str(amount), itemName=itemName, zbucks=zbucks))
 
 @client.command(aliases=["inv"])
 async def inventory(message, member:typing.Optional[discord.Member]):
@@ -487,7 +530,6 @@ async def scrambleChallenge(message):
         return False
 
 
-
 #Item commands
 def giveMemberItems(member, itemName, amount):
     if amount == 0 or amount == None:
@@ -563,9 +605,9 @@ async def useRifle(**kwargs):
 items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:794434356290387989>", 150, useChristmasBox, 0, ItemType.tool),
 'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:794434356549517312>", 50, useBankNote, 0, ItemType.tool),
 'rifle': Item("Use `z use rifle` to go on a hunt and earn some zbucks, this item also protects you from being robbed", "<:rifle:794447075831316513>", 250, useRifle, 60, ItemType.tool),
-'cool llama token': Item("Boosts how many zbucks you earn through any command by 10%", "<:coolllamatoken:794457418654285824>", 150, None, 0, ItemType.collectable),
-'epic llama token': Item("Boosts how many zbucks you earn through any command by 50%", "<:epicllamatoken:794457418637246484>", 500, None, 0, ItemType.collectable),
-'legendary llama token': Item("Boosts how many zbucks you earn through any command by 10%", "<:legendaryllamatoken:794457418611294249>", 1000, None, 0, ItemType.collectable)}
+'cool llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 10%", "<:coolllamatoken:794457418654285824>", 150, None, 0, ItemType.collectable),
+'epic llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 50%", "<:epicllamatoken:794457418637246484>", 500, None, 0, ItemType.collectable),
+'legendary llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 100%", "<:legendaryllamatoken:794457418611294249>", 1000, None, 0, ItemType.collectable)}
 
 currencyDataFilename = "currencyData.pickle"
 currencyUnpickledData = tryLoadSavedDict(currencyDataFilename)
