@@ -198,7 +198,7 @@ async def steal(message, member:discord.Member):
     member2Data = loadCurrencyData(member)
 
     if "rifle" in member2Data.inventory:
-        await message.channel.send(member.mention+" has a rifle, I don't think you want to mess with him")
+        await message.channel.send("{member} has a rifle, I don't think you want to mess with him".format(member=member.mention))
         await message.message.add_reaction(errorReaction)
         return
 
@@ -207,14 +207,14 @@ async def steal(message, member:discord.Member):
     if didFail == 0:
         stealDivide = random.randint(2, 3)
         stealAmount = int(member2Data.wallet/stealDivide)
-        responses = ["You knocked "+member.mention+" out cold and stole **"+str(stealAmount)+"** zbucks from his wallet",
-        "You tripped "+member.mention+" with your leg, **"+str(stealAmount)+"** zbucks fell out of his wallet. You took them"]
+        responses = ["You knocked {member} out cold and stole **{amount}** zbucks from his wallet".format(member=member.mention, amount=str(stealAmount)),
+        "You tripped {member} with your leg, **{amount}** zbucks fell out of his wallet. You took them".format(member=member.mention, amount=str(stealAmount))]
         await message.channel.send(random.choice(responses))
     else:
         stealDivide = random.randint(2, 3)
         stealAmount = int(-member1Data.wallet/stealDivide)
-        responses = ["It turns out that "+member.mention+" is a martial arts expert and overpowered you, taking **"+str(-stealAmount)+"** coins from your wallet",
-        "You tripped on the gutter as you were about to attack "+member.mention+" and **"+str(stealAmount)+"** zbucks fell out of your wallet. "+member.mention+" took them"]
+        responses = ["It turns out that {member} is a martial arts expert and overpowered you, taking **{amount}** coins from your wallet".format(member=member.mention, amount=str(-stealAmount)),
+        "You tripped on the gutter as you were about to attack {member} and **{amount}** zbucks fell out of your wallet. {member} took them".format(member=member.mention, amount=str(stealAmount))]
         await message.channel.send(random.choice(responses))
     
     member1Data.wallet += stealAmount
@@ -256,22 +256,28 @@ async def give(message, member:discord.Member):
 
         member2Data.wallet += intValue
 
-        await message.channel.send("You just gave **"+str(intValue)+"** zbucks to "+member.mention+". What a lucky guy :D")
+        await message.channel.send("You just gave **{zbucks}** zbucks to {member}. What a lucky guy :D".format(zbucks=str(intValue), member=member.mention))
     else:
         itemName = message.message.content[30:]
-        itemName = ''.join([i for i in itemName if not i.isdigit()])[:-1]
+        itemName = ''.join([i for i in itemName if not i.isdigit()])
         amount = tryParseInt(message.message.content[30:].replace("{itemName} ".format(itemName=itemName), ""))
         if amount[0] == True:
+            itemName = itemName[:-1]
             amount = amount[1]
         else:
             amount = 1
 
+        if itemName not in items:
+            await message.channel.send(nonExistentItemError(itemName))
+            await message.message.add_reaction(errorReaction)
+            return
+
+        if amount < 0:
+            await message.channel.send("You can't give negative items lol")
+            await message.message.add_reaction(errorReaction)
+            return
+        
         if str(message.author) != "Zacoons#2407":
-            if itemName not in items:
-                await message.channel.send(nonExistentItemError(itemName))
-                await message.message.add_reaction(errorReaction)
-                return
-            
             if itemName not in member1Data.inventory:
                 await message.channel.send(nullItemError)
                 await message.message.add_reaction(errorReaction)
@@ -279,11 +285,6 @@ async def give(message, member:discord.Member):
             
             if member1Data.inventory[itemName] < amount:
                 await message.channel.send(notEnoughItemsError)
-                await message.message.add_reaction(errorReaction)
-                return
-            
-            if amount < 0:
-                await message.channel.send("You can't give negative items lol")
                 await message.message.add_reaction(errorReaction)
                 return
 
@@ -411,8 +412,8 @@ async def shop(message):
     embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
 
-    for item in items:
-        embedVar.add_field(name=items[item].icon+" "+item+" - "+str(items[item].cost)+" zbucks", value=items[item].description, inline=False)
+    for itemName in items:
+        embedVar.add_field(name="{icon} {itemName} - {cost} zbucks".format(icon=items[itemName].icon, itemName=itemName, cost=str(items[itemName].cost)), value=items[itemName].description, inline=False)
     
     await message.channel.send(embed=embedVar)
 
@@ -492,7 +493,7 @@ async def memoryChallenge(message):
     word3 = words[2]
     thingToRemember = "{word1} {word2} {word3}".format(word1=word1, word2=word2, word3=word3)
     msg = await message.channel.send("Remember these words: `{thingToRemember}`".format(thingToRemember=thingToRemember))
-    await asyncio.sleep(5)
+    await asyncio.sleep(3)
     await msg.edit(content="Now type the words in the chat below")
 
     def check(m):
@@ -596,8 +597,8 @@ async def useRifle(**kwargs):
     amount = random.randint(20, 50)
     amount = addMultiplier(member, amount)
     member.wallet += amount
-    responses=["You shot a rabbit and sold it for **"+str(amount)+"** zbucks",
-    "You shot a skunk and sold it for **"+str(amount)+"** zbucks",]
+    responses=["You shot a rabbit and sold it for **{amount}** zbucks".format(amount=str(amount)),
+    "You shot a skunk and sold it for **{amount}** zbucks".format(amount=str(amount)),]
     await kwargs["channel"].send(random.choice(responses))
     kwargs["member"].netWorh = kwargs["member"].wallet + kwargs["member"].bank
     saveCurrencyData()
