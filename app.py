@@ -76,6 +76,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
+        embedVar.add_field(name="`z warns [Member](Optional)`", value="Gets a member's warns", inline=False)
         embedVar.add_field(name="`z pardon [Member]`", value="(Moderators only) Clears a member's warns", inline=False)
         embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
         embedVar.add_field(name="`z mute [Member] [Time](Seconds)(Optional) [Reason](Optional)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)

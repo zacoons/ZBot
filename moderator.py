@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
 import asyncio
-from common import tryLoadSavedDict, client, completedReaction, badSelfActionError
+from common import tryLoadSavedDict, client, completedReaction, badSelfActionError, embedFooters, embedColour
 import pickle
 import typing
+import random
 
 dataFilename = "warnData.pickle"
 unpickledData = tryLoadSavedDict(dataFilename)
@@ -18,17 +19,30 @@ async def warn(message, member:discord.Member):
         else:
             await message.channel.send(badSelfActionError)
     else:
-        await "{member} isn't a member bro".format(member=message.channel.send(str(member)))
+        await "{member} isn't a member bro".format(member=member)
+
+@client.command()
+async def warns(message, member:typing.Optional[discord.Member]):
+    if member == None:
+        member = message.author 
+    memberData = loadMemberData(message.guild, member)
+
+    embedVar = discord.Embed(title="{member}'s Warns".format(member=member.display_name), description="", color=embedColour)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_thumbnail(url=member.avatar_url)  
+    embedVar.add_field(name=member.display_name, value=memberData, inline=False)
+
+    await message.channel.send(embed=embedVar)
 
 @client.command()
 @commands.has_permissions(kick_members=True)
 async def pardon(message, member:discord.Member):
     members = loadData(message.guild)
 
-    if str(member) not in members:
+    if str(member.id) not in members:
         return
 
-    members[str(member)] = 0
+    members[str(member.id)] = 0
     await message.message.add_reaction(completedReaction)
 
     saveData(members)
@@ -88,6 +102,12 @@ def loadData(guild):
     else:
         unpickledData[str(guild)] = dict()
         return unpickledData[str(guild)]
+def loadMemberData(guild, member):
+    data = loadData(guild)
+    memberid = str(member.id)
+    if not memberid in data:
+        data[memberid] = 0
+    return data[memberid]
 def saveData(data):
     with open(dataFilename, "wb") as file:
         pickle.dump(data, file)
@@ -110,31 +130,33 @@ async def muteMember(member, muteTime, channel):
         await asyncio.sleep(muteTime)
         await member.remove_roles(mutedRole)
 
-async def warnMember(member, message):
+async def warnMember(member, message, reason):
     if member != None:
         if member.id != client.user.id:
             if member.id != message.guild.owner_id and member.id:
                 members = loadData(message.guild)
-
-                if str(member) in members:
-                    members[str(member)] += 1
+                if not str(member.id) in members:
+                    members[str(member.id)] = 0
+                
+                if str(member.id) in members:
+                    members[str(member.id)] += 1
                 else:
-                    members[str(member)] = 1
+                    members[str(member.id)] = 1
 
-                if members[str(member)] >= 3 and member.id != message.guild.owner_id:
+                if members[str(member.id)] >= 3 and member.id != message.guild.owner_id:
                     try:
                         await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe reread the rules")
                     except:
                         pass
-                    members[str(member)] = 0
+                    members[str(member.id)] = 0
                     await member.kick(reason=None)
                 else:
-                    await message.channel.send("{member} you have been warned! **{warns}/3**".format(member=member.mention, warns=str(members[str(member)])))
+                    await message.channel.send("{member} you have been warned! **{warns}/3**".format(member=member.mention, warns=str(members[str(member.id)])))
                 
                 saveData(members)
             else:
-                await message.channel.send("{member} is the owner, he wouldn't break his own rules so he is immune".format(member=member.display_name))
+                await message.channel.send("{member} is the owner, he wouldn't break his own rules so he is immune".format(member=member.mention))
         else:
             await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
     else:
-        await message.channel.send("**{member}** doesn't exist bro".format(member=str(member)))
+        await message.channel.send("**{member}** doesn't exist bro".format(member=member.mention))
