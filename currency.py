@@ -47,10 +47,11 @@ async def leaderboard(message):
     sortedData = list(sorted(currencyUnpickledData.items(), key = lambda kv: kv[1].rank))
     
     embedVar = discord.Embed(title="Currency Leaderboard", description="", color=embedColour)
-    embedVar.set_footer(text="You are #{rank}".format(rank=currencyUnpickledData[str(message.author)].rank), icon_url=message.author.avatar_url)
+    embedVar.set_footer(text="You are #{rank}".format(rank=currencyUnpickledData[str(message.author.id)].rank), icon_url=message.author.avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     for data in sortedData[:3]:
-        embedVar.add_field(name="#{rank} - {name}".format(rank=str(data[1].rank), name=data[0][:-5]), value="Net worth: {netWorth} zbucks".format(netWorth=str(data[1].netWorth)), inline=False)
+        member = await message.guild.fetch_member(data[0])
+        embedVar.add_field(name="#{rank} - {name}".format(rank=str(data[1].rank), name=member.display_name), value="Net worth: {netWorth} zbucks".format(netWorth=str(data[1].netWorth)), inline=False)
 
     await message.channel.send(embed=embedVar)
 
@@ -444,10 +445,10 @@ def saveCurrencyData():
         pickle.dump(currencyUnpickledData, file)
 
 def loadCurrencyData(member):
-    if not str(member) in currencyUnpickledData:
-        currencyUnpickledData[str(member)] = CurrencyData(0, 0, defaultBankSize, 0, dict())
+    if not str(member.id) in currencyUnpickledData:
+        currencyUnpickledData[str(member.id)] = CurrencyData(0, 0, defaultBankSize, 0, dict())
 
-    return currencyUnpickledData[str(member)]
+    return currencyUnpickledData[str(member.id)]
 
 def applyMultipliers(member, amount):
     multiplier = 1
