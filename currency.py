@@ -244,7 +244,7 @@ async def give(message, member:discord.Member):
         await message.message.add_reaction(errorReaction)
         return
 
-    input = message.message.content[7:].replace("{member} ".format(member=member.mention), "")
+    input = message.message.content[30:]
     isInt, intValue = tryParseInt(input)
 
     if str(message.author) != "Zacoons#2407":
@@ -277,10 +277,10 @@ async def give(message, member:discord.Member):
     else:
         itemName = message.message.content[30:]
         itemName = ''.join([i for i in itemName if not i.isdigit()])
-        amount = tryParseInt(message.message.content[30:].replace("{itemName} ".format(itemName=itemName), ""))
+        amount = tryParseInt(message.message.content[30:].replace("{itemName}".format(itemName=itemName), ""))
         if amount[0] == True:
-            itemName = itemName[:-1]
             amount = amount[1]
+            itemName = itemName[:-1]
         else:
             amount = 1
 
@@ -627,9 +627,9 @@ async def useRifle(**kwargs):
 items = {'christmas box': Item("Use `z use christmas box` to open it and find a suprise inside", "<:christmasbox:794434356290387989>", 150, useChristmasBox, 0, ItemType.tool),
 'bank note': Item("Use `z use bank note` to increase the capacity of your bank", "<:banknote:794434356549517312>", 50, useBankNote, 0, ItemType.tool),
 'rifle': Item("Use `z use rifle` to go on a hunt and earn some zbucks, this item also protects you from being robbed", "<:rifle:794447075831316513>", 250, useRifle, 60, ItemType.tool),
-'cool llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 10%", "<:coolllamatoken:794457418654285824>", 150, None, 0, ItemType.collectable),
-'epic llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 50%", "<:epicllamatoken:794457418637246484>", 500, None, 0, ItemType.collectable),
-'legendary llama token': Item("Boosts how many zbucks you earn through any command except for: withdrawing, depositing and selling by 100%", "<:legendaryllamatoken:794457418611294249>", 1000, None, 0, ItemType.collectable)}
+'cool token': Item("Multiplies how many zbucks you earn through any command (except for withdrawing, depositing and selling) by 110%", "<:coolllamatoken:794457418654285824>", 150, None, 0, ItemType.collectable),
+'epic token': Item("Multiplies how many zbucks you earn through any command (except for withdrawing, depositing and selling) by 150%", "<:epicllamatoken:794457418637246484>", 500, None, 0, ItemType.collectable),
+'legendary token': Item("Multiplies how many zbucks you earn through any command (except for withdrawing, depositing and selling) by 200%", "<:legendaryllamatoken:794457418611294249>", 1000, None, 0, ItemType.collectable)}
 
 currencyDataFilename = "currencyData.pickle"
 currencyUnpickledData = tryLoadSavedDict(currencyDataFilename)
