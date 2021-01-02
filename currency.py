@@ -83,13 +83,15 @@ async def work(message):
     if await challenge(message) == False:
         return
 
-    amount = addMultiplier(member, amount)
+    amount = applyMultipliers(member, amount)
     member.wallet += amount
     if getsBonusItem == 0:
         giveMemberItems(member, itemName, 1)
         await message.channel.send("Well done, you earned **{amount}** zbucks. You also found a **{item}**".format(amount=str(amount), item=itemName))
     else:
         await message.channel.send("Well done, you earned **{amount}** zbucks".format(amount=str(amount)))
+    
+    await message.message.add_reaction(completedReaction)
 
     saveCurrencyData()
 
@@ -126,6 +128,7 @@ async def buy(message):
         await message.channel.send("You just bought a **{item}** for **{cost}** zbucks".format(item=itemName, cost=str(items[itemName].cost)))
     else:
         await message.channel.send("You just bought **{amount}** **{item}s** for **{cost}** zbucks".format(amount=str(amount), item=itemName, cost=str(items[itemName].cost)))
+    await message.message.add_reaction(completedReaction)
 
     saveCurrencyData()
 
@@ -136,6 +139,7 @@ async def deposit(message, amount:str):
     if amount.lower() == 'all' or int(amount) > member.wallet:
         if member.bank == member.bankSize:
             await message.channel.send("Your bank is too full, you can upgrade it by using a bank note")
+            await message.message.add_reaction(errorReaction)
             return
         if member.wallet < (member.bankSize - member.bank):
             dep = member.wallet
@@ -153,13 +157,16 @@ async def deposit(message, amount:str):
             await message.channel.send("You can't deposit negative money, smh")
             await message.message.add_reaction(errorReaction)
             return
-
-        if not (int(amount) + member.bank) > member.bankSize:
-            member.bank += int(amount)
-            member.wallet -= int(amount)
-            await message.message.add_reaction(completedReaction)
-        else:
+        
+        if (int(amount) + member.bank) > member.bankSize:
             await message.channel.send("That won't fit in your bank... Maybe deposit a bit less")
+            await message.message.add_reaction(errorReaction)
+            return
+
+        member.bank += int(amount)
+        member.wallet -= int(amount)
+    
+    await message.message.add_reaction(completedReaction)
 
     saveCurrencyData()
 
@@ -177,12 +184,16 @@ async def withdraw(message, amount:str):
             await message.channel.send("You can't withdraw negative money, smh")
             await message.message.add_reaction(errorReaction)
             return
-        if not int(amount) > member.bank:
-            member.bank -= int(amount)
-            member.wallet += int(amount)
-            await message.message.add_reaction(completedReaction)
-        else:
+        
+        if int(amount) > member.bank:
             await message.channel.send("Lol you wish, you don't have that many zbucks")
+            await message.message.add_reaction(errorReaction)
+            return
+        
+        member.bank -= int(amount)
+        member.wallet += int(amount)
+    
+    await message.message.add_reaction(completedReaction)
 
     saveCurrencyData()
 
@@ -208,24 +219,28 @@ async def steal(message, member:discord.Member):
         stealDivide = random.randint(2, 3)
         stealAmount = int(member2Data.wallet/stealDivide)
         responses = ["You knocked {member} out cold and stole **{amount}** zbucks from his wallet".format(member=member.mention, amount=str(stealAmount)),
-        "You tripped {member} with your leg, **{amount}** zbucks fell out of his wallet. You took them".format(member=member.mention, amount=str(stealAmount))]
-        await message.channel.send(random.choice(responses))
+        "You tripped {member}, **{amount}** zbucks fell out of his wallet. You took them".format(member=member.mention, amount=str(stealAmount))]
+        msg = await message.channel.send(random.choice(responses))
+        await msg.message.add_reaction(completedReaction)
     else:
         stealDivide = random.randint(2, 3)
         stealAmount = int(-member1Data.wallet/stealDivide)
         responses = ["It turns out that {member} is a martial arts expert and overpowered you, taking **{amount}** coins from your wallet".format(member=member.mention, amount=str(-stealAmount)),
-        "You tripped on the gutter as you were about to attack {member} and **{amount}** zbucks fell out of your wallet. {member} took them".format(member=member.mention, amount=str(stealAmount))]
-        await message.channel.send(random.choice(responses))
+        "You tripped on the gutter as you were about to attack and **{amount}** zbucks fell out of your wallet. {member} took them".format(member=member.mention, amount=str(stealAmount))]
+        msg = await message.channel.send(random.choice(responses))
+        await msg.message.add_reaction(errorReaction)
     
     member1Data.wallet += stealAmount
     member2Data.wallet -= stealAmount
 
     saveCurrencyData()
+    await message.message.add_reaction(completedReaction)
 
 @client.command()
 async def give(message, member:discord.Member):
     if member.bot:
         await message.channel.send("You can't give stuff to bots dood")
+        await message.message.add_reaction(errorReaction)
         return
 
     input = message.message.content[7:].replace("{member} ".format(member=member.mention), "")
@@ -257,6 +272,7 @@ async def give(message, member:discord.Member):
         member2Data.wallet += intValue
 
         await message.channel.send("You just gave **{zbucks}** zbucks to {member}. What a lucky guy :D".format(zbucks=str(intValue), member=member.mention))
+        await message.message.add_reaction(completedReaction)
     else:
         itemName = message.message.content[30:]
         itemName = ''.join([i for i in itemName if not i.isdigit()])
@@ -304,10 +320,11 @@ async def give(message, member:discord.Member):
 async def daily(message):
     amount = random.randint(20, 50)
     member = loadCurrencyData(message.author)
-    amount = addMultiplier(member, amount)
+    amount = applyMultipliers(member, amount)
     member.wallet += amount
     giveMemberItems(member, "bank note", 1)
     await message.channel.send("Your daily reward is **{amount}** zbucks and a **bank note**".format(amount=str(amount)))
+    await message.message.add_reaction(completedReaction)
     saveCurrencyData()
 
 @client.command()
@@ -345,9 +362,11 @@ async def use(message):
         await message.message.add_reaction(errorReaction)
         return
     
-    if itemName in member.inventory:
-        if cooldown(message, items[itemName].use, items[itemName].cooldown):
-            await items[itemName].use(member=message.author, channel=message.channel, amount=amount)
+    if cooldown(message, items[itemName].use, items[itemName].cooldown):
+        await items[itemName].use(member=message.author, channel=message.channel, amount=amount)
+        await message.message.add_reaction(completedReaction)
+    else:
+        await message.message.add_reaction(errorReaction)
 
 @client.command()
 async def sell(message):
@@ -388,6 +407,7 @@ async def sell(message):
         await message.channel.send("You just sold a **{itemName}** for **{zbucks}** zbucks".format(itemName=itemName, zbucks=zbucks))
     else:
         await message.channel.send("You just sold **{amount} {itemName}s** for **{zbucks}** zbucks".format(amount=str(amount), itemName=itemName, zbucks=zbucks))
+    await message.message.add_reaction(completedReaction)
 
 @client.command(aliases=["inv"])
 async def inventory(message, member:typing.Optional[discord.Member]):
@@ -429,7 +449,7 @@ def loadCurrencyData(member):
 
     return currencyUnpickledData[str(member)]
 
-def addMultiplier(member, amount):
+def applyMultipliers(member, amount):
     multiplier = 1
     if "cool llama token" in member.inventory:
         index = member.inventory["cool llama token"]
@@ -563,7 +583,7 @@ async def useChristmasBox(**kwargs):
     while i > 0:
         removeMemberItems(member, "christmas box", 1)
         rand = random.randint(75, 200)
-        zbucks = addMultiplier(member, rand)
+        zbucks = applyMultipliers(member, rand)
         zbucks += rand
         member = loadCurrencyData(kwargs["member"])
         i -= 1
@@ -595,7 +615,7 @@ async def useBankNote(**kwargs):
 async def useRifle(**kwargs):
     member = loadCurrencyData(kwargs["member"])
     amount = random.randint(20, 50)
-    amount = addMultiplier(member, amount)
+    amount = applyMultipliers(member, amount)
     member.wallet += amount
     responses=["You shot a rabbit and sold it for **{amount}** zbucks".format(amount=str(amount)),
     "You shot a skunk and sold it for **{amount}** zbucks".format(amount=str(amount)),]
