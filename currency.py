@@ -41,6 +41,16 @@ global currencyUnpickledData
 defaultBankSize = 50
 
 #Commands
+@client.command()
+async def vote(message):
+    embedVar = discord.Embed(title="Vote For ZBot B)", description="", color=embedColour)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.add_field(name="Vote here:", value="No link cuz the bot hasn't been approved yet ;-;", inline=False)
+    embedVar.add_field(name="Rewards:", value="\n50 zbucks\nbank note", inline=False)
+
+    await message.channel.send(embed=embedVar)
+
 @client.command(aliases=['lb'])
 async def leaderboard(message):
     setCurrencyRanks()
@@ -437,6 +447,12 @@ async def shop(message):
         embedVar.add_field(name="{icon} {itemName} - {cost} zbucks".format(icon=items[itemName].icon, itemName=itemName, cost=str(items[itemName].cost)), value=items[itemName].description, inline=False)
     
     await message.channel.send(embed=embedVar)
+
+
+#Events
+@client.event
+async def on_dbl_vote(data):
+    print(data)
 
 
 #Functions

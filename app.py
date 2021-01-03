@@ -84,7 +84,7 @@ async def help(message, helpType:typing.Optional[str]):
     elif helpType == "misc":
         embedVar = discord.Embed(title="ZBot Other Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.add_field(name="`z slap [Member]`", value="Slaps someone", inline=False)
         embedVar.add_field(name="`z hug [Member]`", value="Hugs someone", inline=False)
         embedVar.add_field(name="`z throne [Member]`", value="LONG LIVE THE KING", inline=False)
@@ -104,7 +104,8 @@ async def help(message, helpType:typing.Optional[str]):
     elif helpType == "currency":
         embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
         embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)   
+        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+        embedVar.add_field(name="*`z vote`*", value="*Gives you a special reward for voting for the bot*", inline=False)
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
         embedVar.add_field(name="`z deposit [Amount](Can be 'all' or a number)`", value="(AKA dep) Deposits your money in the bank for safekeeping", inline=False)
