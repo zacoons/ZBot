@@ -1,13 +1,17 @@
 import discord
 from discord.ext import commands
 import asyncio
-from common import tryLoadSavedDict, client, completedReaction, badSelfActionError, embedFooters, embedColour
+from common import tryLoadSavedDict, client, completedReaction, badSelfActionError, embedFooters, embedColour, errorReaction
 import pickle
 import typing
 import random
 
 dataFilename = "warnData.pickle"
-unpickledData = tryLoadSavedDict(dataFilename)
+
+class WarnData:
+    def __init__(self, reason, warner):
+        self.reason = reason
+        self.warner = warner
 
 #Commands
 @client.command()
@@ -15,7 +19,8 @@ unpickledData = tryLoadSavedDict(dataFilename)
 async def warn(message, member:discord.Member):
     if member != None:
         if member.id != message.author.id:
-            await warnMember(member, message)
+            reason = message.message.content[30:]
+            await warnMember(member, message, reason)
         else:
             await message.channel.send(badSelfActionError)
     else:
@@ -25,12 +30,24 @@ async def warn(message, member:discord.Member):
 async def warns(message, member:typing.Optional[discord.Member]):
     if member == None:
         member = message.author 
-    memberData = loadMemberData(message.guild, member)
+    data = loadData(message.guild)
 
     embedVar = discord.Embed(title="{member}'s Warns".format(member=member.display_name), description="", color=embedColour)
     embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-    embedVar.set_thumbnail(url=member.avatar_url)  
-    embedVar.add_field(name=member.display_name, value=memberData, inline=False)
+    embedVar.set_thumbnail(url=member.avatar_url)
+
+    if str(member.id) not in data or len(data[str(member.id)]) == 0:
+        await message.channel.send("He doesn't have any warns")
+        message.message.add_reaction(errorReaction)
+        return
+
+    for warnNumber in data[str(member.id)]:
+        if data[str(member.id)][warnNumber].warner != None:
+            warner = await message.guild.fetch_member(data[str(member.id)][warnNumber].warner)
+        reason = data[str(member.id)][warnNumber].reason
+        if reason == "":
+            reason = "None"
+        embedVar.add_field(name="Reason: {reason}".format(reason=reason), value="Warned by: {warner}".format(warner=warner.display_name), inline=False)
 
     await message.channel.send(embed=embedVar)
 
@@ -40,12 +57,13 @@ async def pardon(message, member:discord.Member):
     members = loadData(message.guild)
 
     if str(member.id) not in members:
+        await message.channel.send("He hasn't been warned yet")
         return
 
-    members[str(member.id)] = 0
+    members[str(member.id)].clear()
     await message.message.add_reaction(completedReaction)
 
-    saveData(members)
+    saveData()
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -53,13 +71,11 @@ async def pardonall(message):
     members = loadData(message.guild)
 
     for member in members:
-        if members[member] == None:
-            return
-        members[member] = 0
+        members[str(member.id)].clear()
     
     await message.message.add_reaction(completedReaction)
 
-    saveData(members)
+    saveData()
 
 @client.command()
 @commands.has_permissions(kick_members=True)
@@ -97,20 +113,12 @@ async def unmute(message, member:discord.Member):
 
 #Functions
 def loadData(guild):
-    if str(guild) in unpickledData:
-        return unpickledData[str(guild)]
-    else:
-        unpickledData[str(guild)] = dict()
-        return unpickledData[str(guild)]
-def loadMemberData(guild, member):
-    data = loadData(guild)
-    memberid = str(member.id)
-    if not memberid in data:
-        data[memberid] = 0
-    return data[memberid]
-def saveData(data):
+    if str(guild.id) not in unpickledData:
+        unpickledData[str(guild.id)] = dict()
+    return unpickledData[str(guild.id)]
+def saveData():
     with open(dataFilename, "wb") as file:
-        pickle.dump(data, file)
+        pickle.dump(unpickledData, file)
 
 async def muteMember(member, muteTime, channel):
     mutedRole = discord.utils.get(channel.guild.roles, name="Muted")
@@ -131,32 +139,43 @@ async def muteMember(member, muteTime, channel):
         await member.remove_roles(mutedRole)
 
 async def warnMember(member, message, reason):
-    if member != None:
-        if member.id != client.user.id:
-            if member.id != message.guild.owner_id and member.id:
-                members = loadData(message.guild)
-                if not str(member.id) in members:
-                    members[str(member.id)] = 0
-                
-                if str(member.id) in members:
-                    members[str(member.id)] += 1
-                else:
-                    members[str(member.id)] = 1
-
-                if members[str(member.id)] >= 3 and member.id != message.guild.owner_id:
-                    try:
-                        await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe reread the rules")
-                    except:
-                        pass
-                    members[str(member.id)] = 0
-                    await member.kick(reason=None)
-                else:
-                    await message.channel.send("{member} you have been warned! **{warns}/3**".format(member=member.mention, warns=str(members[str(member.id)])))
-                
-                saveData(members)
-            else:
-                await message.channel.send("{member} is the owner, he wouldn't break his own rules so he is immune".format(member=member.mention))
-        else:
-            await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with the owner")
-    else:
+    if member == None:
         await message.channel.send("**{member}** doesn't exist bro".format(member=member.mention))
+        await message.message.add_reaction(errorReaction)
+        return
+    
+    if member.id == client.user.id:
+        await message.channel.send("Bruh, I'm a bot. If you have a problem with me, take it up with my creator: Zacoons#2407")
+        await message.message.add_reaction(errorReaction)
+        return
+
+    if member.id == message.guild.owner_id:
+        await message.channel.send("{member} is the owner, he wouldn't break his own rules so he is immune".format(member=member.mention))
+        await message.message.add_reaction(errorReaction)
+        return
+    
+    if member.id == message.author.id:
+        await message.channel.send(badSelfActionError)
+        message.message.add_reaction(errorReaction)
+        return
+
+    members = loadData(message.guild)
+    if str(member.id) not in members:
+        members[str(member.id)] = dict()
+    memberWarns = members[str(member.id)]
+
+    memberWarns[str(len(memberWarns) + 1)] = WarnData(reason, str(message.author.id))
+
+    if len(memberWarns) >= 3 and member.id != message.guild.owner_id:
+        try:
+            await member.send("Too many warns and you were kicked from the server! If you wish to rejoin maybe read the rules this time")
+        except:
+            pass
+        memberWarns.clear()
+        await member.kick(reason="3/3 warns")
+    else:
+        await message.channel.send("{member} you have been warned! **{warns}/3** {reason}".format(member=member.mention, warns=str(len(memberWarns)), reason=reason))
+    
+    saveData()
+
+unpickledData = tryLoadSavedDict(dataFilename)
