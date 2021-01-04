@@ -53,7 +53,7 @@ async def on_message(message):
                     await message.add_reaction('🔥')
                 if number == 69:
                     await message.channel.send("Hehe")
-                    await message.add_reaction(completedReaction)
+                    await message.add_reaction('😏')
                 elif number == 100:
                     await message.channel.send("Wow you guys reached **100**, nicely done B)")
                     await message.add_reaction('🎉')
