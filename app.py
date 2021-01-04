@@ -106,7 +106,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z leaderboard`", value="(AKA lb) Shows you the global leaderboard", inline=False)
     elif helpType == "counting":
         embedVar.add_field(name="How To Play", value="You start off at **0**, the first person types **1**. You can't go twice in a row, but if you do, it's not a big deal. If you get the wrong number though, you have to restart back from **0**!", inline=False)
-        embedVar.add_field(name="`z setcountingchannel`", value='Sets the channel that you count in', inline=False)
+        embedVar.add_field(name="`z setcountingchannel`", value='(Moderators only) Sets the channel that you count in', inline=False)
     
     await message.channel.send(embed=embedVar)
 

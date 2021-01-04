@@ -1,4 +1,5 @@
 import discord
+from discord.ext import commands
 import pickle
 from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, tryParseInt
 import typing
@@ -16,6 +17,7 @@ global unpickledData
 
 #Commands
 @client.command()
+@commands.has_permissions(kick_members=True)
 async def setcountingchannel(message, channel:typing.Optional[discord.TextChannel]):
     if channel == None:
         channel = message.channel
@@ -46,7 +48,17 @@ async def on_message(message):
             if number == data.number + 1:
                 data.number += 1
                 data.previousAuthor = str(message.author.id)
-                await message.add_reaction(completedReaction)
+                if number == 50:
+                    await message.channel.send("Keep, going! You're on fire ;)")
+                    await message.add_reaction('🔥')
+                elif number == 100:
+                    await message.channel.send("Wow you guys reached **100**, nicely done B)")
+                    await message.add_reaction('🎉')
+                elif number == 1000:
+                    await message.channel.send(":sparkles: Holy moly you guys are incredible! You deserve a gold star :sparkles:")
+                    await message.add_reaction('🌟')
+                else:
+                    await message.add_reaction(completedReaction)
             else:
                 await message.channel.send("Wrong number, now it's back to **0** ;-;")
                 await message.add_reaction(errorReaction)
