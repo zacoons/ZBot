@@ -51,12 +51,21 @@ async def on_message(message):
                 if number == 50:
                     await message.channel.send("Keep, going! You're on fire ;)")
                     await message.add_reaction('🔥')
+                if number == 69:
+                    await message.channel.send("Hehe")
+                    await message.add_reaction(completedReaction)
                 elif number == 100:
                     await message.channel.send("Wow you guys reached **100**, nicely done B)")
                     await message.add_reaction('🎉')
-                elif number == 1000:
+                elif number == 250:
+                    await message.channel.send("Damn you guys are amazing! Keep it up")
+                    await message.add_reaction('🎊')
+                elif number == 500:
                     await message.channel.send(":sparkles: Holy moly you guys are incredible! You deserve a gold star :sparkles:")
                     await message.add_reaction('🌟')
+                elif number == 1000:
+                    await message.channel.send("H- How did you guys even get here")
+                    await message.add_reaction('🏆')
                 else:
                     await message.add_reaction(completedReaction)
             else:
