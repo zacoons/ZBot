@@ -23,6 +23,12 @@ def tryLoadSavedDict(filename):
     else:
         return dict()
 
+def tryParseInt(input):
+    try:
+        return True, int(input)
+    except ValueError:
+        return False, input
+
 
 #Command errors
 badSelfActionError = "That's you dum dum"

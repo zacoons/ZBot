@@ -17,6 +17,7 @@ from currency import leaderboard, deposit, buy, balance, buy, daily, give, inven
 from moderator import warn, pardon, pardonall, mute
 from io import BytesIO
 from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, badArgsError, badBotPermsError, badMemberPermsError, nonExistentCommandError
+from counting import setcountingchannel, on_message
 
 class MemberData:
     def __init__(self, warns, xp, level, rank, levelUpThreshold):
@@ -51,40 +52,30 @@ async def on_ready():
 
 @client.command()
 async def help(message, helpType:typing.Optional[str]):
-    if helpType == None:
-        embedVar = discord.Embed(title="ZBot Help", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice((embedFooters())), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+    embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+
+    if helpType == None: 
         embedVar.add_field(name="Setup", value="`z help setup`")
         # embedVar.add_field(name="Levels", value="`z help lvls`")
         embedVar.add_field(name="Currency", value="`z help currency`")
         embedVar.add_field(name="Moderator", value="`z help mod`")
+        embedVar.add_field(name="Counting", value="`z help mod`")
         embedVar.add_field(name="Other", value="`z help misc`")
-        await message.channel.send(embed=embedVar)
-    elif helpType == "setup":
-        embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
+    elif helpType == "setup": 
         # embedVar.add_field(name="`z setlvlupchannel [Channel]`", value="Sets a specific channel for the level up message", inline=False)
         # embedVar.add_field(name="`z setlvlupmsg [Message]`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
         embedVar.add_field(name="`z setwelcomechannel [Channel]`", value="Sets a specific channel for the welcome message", inline=False)
-        embedVar.add_field(name="`z setwelcomemsg [Message]`", value='Syntax example: z setwelcomemsg "Welcome to the server [mention]!"', inline=False)
+        embedVar.add_field(name="`z setwelcomemsg [Message]`", value='Syntax example: z setwelcomemsg Welcome to the server [mention]!', inline=False)
         embedVar.add_field(name="`z configuration`", value='(AKA config) Shows you the your server setup configuration', inline=False)
-        await message.channel.send(embed=embedVar)
     elif helpType == "mod":
-        embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)  
         embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
         embedVar.add_field(name="`z warns [Member](Optional)`", value="Shows you the all the info on a member's warns", inline=False)
         embedVar.add_field(name="`z pardon [Member]`", value="(Moderators only) Clears a member's warns", inline=False)
         embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
         embedVar.add_field(name="`z mute [Member] [Time](Seconds)(Optional) [Reason](Optional)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)
-        await message.channel.send(embed=embedVar)
     elif helpType == "misc":
-        embedVar = discord.Embed(title="ZBot Other Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.add_field(name="`z slap [Member]`", value="Slaps someone", inline=False)
         embedVar.add_field(name="`z hug [Member]`", value="Hugs someone", inline=False)
         embedVar.add_field(name="`z throne [Member]`", value="LONG LIVE THE KING", inline=False)
@@ -93,7 +84,6 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z meme`", value="Fetches a meme from reddit", inline=False)
         embedVar.add_field(name="`z joke`", value="Send you a normal joke", inline=False)
         embedVar.add_field(name="`z conversationstarter`", value="(AKA convostart) Sends you a conversation starter", inline=False)
-        await message.channel.send(embed=embedVar)
     # elif helpType == "lvls":
     #     embedVar = discord.Embed(title="ZBot Level Commands", description="", color=embedColour)
     #     embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
@@ -102,9 +92,6 @@ async def help(message, helpType:typing.Optional[str]):
     #     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
     #     await message.channel.send(embed=embedVar)
     elif helpType == "currency":
-        embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
-        embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-        embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
         embedVar.add_field(name="*`z vote`*", value="*Gives you a special reward for voting for the bot*", inline=False)
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
@@ -117,7 +104,11 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z inventory [Member](Optional)`", value="(AKA inv) Shows you the items that you own", inline=False)
         embedVar.add_field(name="`z shop`", value="(AKA store) Shows you the items that you can buy", inline=False)
         embedVar.add_field(name="`z leaderboard`", value="(AKA lb) Shows you the global leaderboard", inline=False)
-        await message.channel.send(embed=embedVar)
+    elif helpType == "counting":
+        embedVar.add_field(name="How To Play", value="You start off at **0**, the first person types **1**. You can't go twice in a row, but if you do, it's not a big deal. If you get the wrong number though, you have to restart back from **0**!", inline=False)
+        embedVar.add_field(name="`z setcountingchannel`", value='Sets the channel that you count in', inline=False)
+    
+    await message.channel.send(embed=embedVar)
 
 #Misc
 @client.command()
@@ -252,7 +243,7 @@ async def setlvlupmsg(message):
 
 @client.command()
 @commands.has_permissions(kick_members=True)
-async def setwelcomechannel(message):
+async def setwelcomechannel(message, channel:typing.Optional[discord.TextChannel]):
     setWelcomeChannel(message.guild, message.channel)
 
     await message.message.add_reaction(completedReaction)
@@ -329,15 +320,6 @@ async def levels(message):
     await message.channel.send(embed=embedVar)
 
 #Events
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    # await giveMemberXP(1, message)
-
-    await client.process_commands(message)
-
 @client.event
 async def on_member_join(member):
     setupData = loadSetupData(member.guild)

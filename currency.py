@@ -4,9 +4,11 @@ import pickle
 import random
 import asyncio
 import typing
-from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, nonExistentItemError, badSelfActionError, nullItemError, notEnoughItemsError
+from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, errorReaction, nonExistentItemError, badSelfActionError, nullItemError, notEnoughItemsError, tryParseInt
 import datetime
 from enum import Enum, auto
+import dbl
+import socket
 
 class CurrencyData:
     def __init__(self, wallet, bank, bankSize, rank, inventory):
@@ -35,10 +37,25 @@ class Item:
         self.cooldown = cooldown
         self.type = type
 
+class TopGG(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc0NTQxMjQwNzIxMTU4OTY4NCIsImJvdCI6dHJ1ZSwiaWF0IjoxNjA5NzE1NzIzfQ.qoo7asHH5Z7EyXbSY6JvyA-ogD7s9DTLKzbcIZLgpro"
+        self.dblpy = dbl.DBLClient(bot, self.token, webhook_path='/dblwebhook', port="5000", webhook_auth='zbotpassword', webhook_port=5000)
+
+    @client.event
+    async def on_dbl_vote(self, data):
+        print("Received an upvote!")
+        print(data)
+
+def setup():
+    client.add_cog(TopGG(client))
+
 global items
 global currencyUnpickledData
 
 defaultBankSize = 50
+
 
 #Commands
 @client.command()
@@ -449,12 +466,6 @@ async def shop(message):
     await message.channel.send(embed=embedVar)
 
 
-#Events
-@client.event
-async def on_dbl_vote(data):
-    print(data)
-
-
 #Functions
 def saveCurrencyData():
     with open(currencyDataFilename, "wb") as file:
@@ -513,12 +524,6 @@ def cooldown(message, useFunc, seconds):
         return True
 
     raise commands.CommandOnCooldown(DummyCooldown(seconds), (cooldown_end - now).seconds)
-
-def tryParseInt(input):
-    try:
-        return True, int(input)
-    except ValueError:
-        return False, input
 
 
 #Work challenges
@@ -649,3 +654,5 @@ items = {'christmas box': Item("Use `z use christmas box` to open it and find a 
 
 currencyDataFilename = "currencyData.pickle"
 currencyUnpickledData = tryLoadSavedDict(currencyDataFilename)
+
+setup()
