@@ -52,24 +52,23 @@ async def on_ready():
 
 @client.command()
 async def help(message, helpType:typing.Optional[str]):
-    embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
-    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
-
     if helpType == None: 
+        embedVar = discord.Embed(title="ZBot Help Commands", description="", color=embedColour)
         embedVar.add_field(name="Setup", value="`z help setup`")
         # embedVar.add_field(name="Levels", value="`z help lvls`")
         embedVar.add_field(name="Currency", value="`z help currency`")
         embedVar.add_field(name="Moderator", value="`z help mod`")
-        embedVar.add_field(name="Counting", value="`z help mod`")
+        embedVar.add_field(name="Counting", value="`z help counting`")
         embedVar.add_field(name="Other", value="`z help misc`")
-    elif helpType == "setup": 
+    elif helpType == "setup":
+        embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=embedColour)
         # embedVar.add_field(name="`z setlvlupchannel [Channel]`", value="Sets a specific channel for the level up message", inline=False)
         # embedVar.add_field(name="`z setlvlupmsg [Message]`", value='Syntax example: z setlvlupmsg Nice job [mention]! You are now level [level]!"', inline=False)
         embedVar.add_field(name="`z setwelcomechannel [Channel]`", value="Sets a specific channel for the welcome message", inline=False)
         embedVar.add_field(name="`z setwelcomemsg [Message]`", value='Syntax example: z setwelcomemsg Welcome to the server [mention]!', inline=False)
         embedVar.add_field(name="`z configuration`", value='(AKA config) Shows you the your server setup configuration', inline=False)
     elif helpType == "mod":
+        embedVar = discord.Embed(title="ZBot Moderator Commands", description="", color=embedColour)
         embedVar.add_field(name="`z setslowmode [Seconds] [Channel](Optional)`", value="(Moderators only) Changes the channel's slowmode", inline=False)
         embedVar.add_field(name="`z purge [Number]`", value="(Moderators only) Deletes a number of messages in the channel the command is said in", inline=False)
         embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
@@ -78,6 +77,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z pardonall`", value="(Moderators only) Clears everyone's warns", inline=False)
         embedVar.add_field(name="`z mute [Member] [Time](Seconds)(Optional) [Reason](Optional)`", value="(Moderators only) Mutes a member for a number of seconds", inline=False)
     elif helpType == "misc":
+        embedVar = discord.Embed(title="ZBot Miscellaneous Commands", description="", color=embedColour)
         embedVar.add_field(name="`z slap [Member]`", value="Slaps someone", inline=False)
         embedVar.add_field(name="`z hug [Member]`", value="Hugs someone", inline=False)
         embedVar.add_field(name="`z throne [Member]`", value="LONG LIVE THE KING", inline=False)
@@ -94,6 +94,7 @@ async def help(message, helpType:typing.Optional[str]):
     #     embedVar.add_field(name="`z levels`", value="(AKA lvls) Gives you the rank of all ranked members", inline=False)
     #     await message.channel.send(embed=embedVar)
     elif helpType == "currency":
+        embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
         embedVar.add_field(name="*`z vote`*", value="*Gives you a special reward for voting for the bot*", inline=False)
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
@@ -107,9 +108,12 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z shop`", value="(AKA store) Shows you the items that you can buy", inline=False)
         embedVar.add_field(name="`z leaderboard`", value="(AKA lb) Shows you the global leaderboard", inline=False)
     elif helpType == "counting":
+        embedVar = discord.Embed(title="ZBot Counting Commands", description="", color=embedColour)
         embedVar.add_field(name="How To Play", value="You start off at **0**, the first person types **1**. You can't go twice in a row, but if you do, it's not a big deal. If you get the wrong number though, you have to restart back from **0**!", inline=False)
         embedVar.add_field(name="`z setcountingchannel`", value='(Moderators only) Sets the channel that you count in', inline=False)
     
+    embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
+    embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     await message.channel.send(embed=embedVar)
 
 #Misc
