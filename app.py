@@ -18,6 +18,7 @@ from moderator import warn, pardon, pardonall, mute, setslowmode, purge
 from io import BytesIO
 from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, badArgsError, badBotPermsError, badMemberPermsError, nonExistentCommandError
 from counting import setcountingchannel, on_message
+from music import play, stop
 
 class MemberData:
     def __init__(self, warns, xp, level, rank, levelUpThreshold):
@@ -59,6 +60,7 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="Currency", value="`z help currency`")
         embedVar.add_field(name="Moderator", value="`z help mod`")
         embedVar.add_field(name="Counting", value="`z help counting`")
+        embedVar.add_field(name="Music (⚙ still under construction)", value="`z help music`")
         embedVar.add_field(name="Other", value="`z help misc`")
     elif helpType == "setup":
         embedVar = discord.Embed(title="ZBot Setup Commands", description="", color=embedColour)
@@ -95,7 +97,7 @@ async def help(message, helpType:typing.Optional[str]):
     #     await message.channel.send(embed=embedVar)
     elif helpType == "currency":
         embedVar = discord.Embed(title="ZBot Currency Commands", description="", color=embedColour)
-        embedVar.add_field(name="*`z vote`*", value="*Gives you a special reward for voting for the bot*", inline=False)
+        embedVar.add_field(name="*`z vote`*", value="**No vote link yet... Coming soon** - *Gives you a special reward for voting for the bot*", inline=False)
         embedVar.add_field(name="`z work`", value="(1 min cooldown) Earns you some money", inline=False)
         embedVar.add_field(name="`z daily`", value="(24 hr cooldown) Gives you your daily reward", inline=False)
         embedVar.add_field(name="`z deposit [Amount](Can be 'all' or a number)`", value="(AKA dep) Deposits your money in the bank for safekeeping", inline=False)
@@ -111,6 +113,10 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar = discord.Embed(title="ZBot Counting Commands", description="", color=embedColour)
         embedVar.add_field(name="How To Play", value="You start off at **0**, the first person types **1**. You can't go twice in a row, but if you do, it's not a big deal. If you get the wrong number though, you have to restart back from **0**!", inline=False)
         embedVar.add_field(name="`z setcountingchannel`", value='(Moderators only) Sets the channel that you count in', inline=False)
+    elif helpType == "music":
+        embedVar = discord.Embed(title="ZBot Music Commands", description="", color=embedColour)
+        embedVar.add_field(name="`z play [Search/URL](Optional)`", value="**You can't actually play music yet** - (AKA join) Joins the voice channel and plays some music", inline=False)
+        embedVar.add_field(name="`z stop`", value='(AKA leave, disconnect) Leaves the voice channel', inline=False)
     
     embedVar.set_footer(text=random.choice(embedFooters()), icon_url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
     embedVar.set_thumbnail(url=discord.utils.get(message.guild.members, name="ZBot").avatar_url)
