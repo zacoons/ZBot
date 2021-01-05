@@ -89,9 +89,5 @@ def loadData(guild):
 
     return unpickledData[str(guild.id)]
 
-async def giveOneAtATimeError(channel):
-    errorMsg = await channel.send("One at a time boi, wait for the next person to go")
-    await asyncio.sleep(5)
-    await errorMsg.delete()
 
 unpickledData = tryLoadSavedDict(dataFilename)

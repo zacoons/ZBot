@@ -110,6 +110,30 @@ async def unmute(message, member:discord.Member):
     await message.channel.send("{member} was unmuted".format(member=member.mention))
     await message.message.add_reaction(completedReaction)
 
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def setslowmode(message, seconds:int, channel:typing.Optional[discord.TextChannel]):
+    if seconds < 0:
+        await message.channel.send("Lol, nice try")
+        return
+    
+    if channel == None:
+        channel = message.channel
+
+    await channel.edit(slowmode_delay=seconds)
+
+    await message.add_reaction(completedReaction)
+
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def purge(message, number:int):
+    if number < 0:
+        await message.channel.send("Lol, nice try")
+        return
+    
+    number += 1
+    await message.channel.purge(limit=number)
+
 
 #Functions
 def loadData(guild):

@@ -14,7 +14,7 @@ import asyncio
 from PIL import Image, ImageDraw, ImageFilter
 import requests
 from currency import leaderboard, deposit, buy, balance, buy, daily, give, inventory, steal, shop, withdraw
-from moderator import warn, pardon, pardonall, mute
+from moderator import warn, pardon, pardonall, mute, setslowmode, purge
 from io import BytesIO
 from common import tryLoadSavedDict, client, embedColour, embedFooters, completedReaction, badArgsError, badBotPermsError, badMemberPermsError, nonExistentCommandError
 from counting import setcountingchannel, on_message
@@ -70,6 +70,8 @@ async def help(message, helpType:typing.Optional[str]):
         embedVar.add_field(name="`z setwelcomemsg [Message]`", value='Syntax example: z setwelcomemsg Welcome to the server [mention]!', inline=False)
         embedVar.add_field(name="`z configuration`", value='(AKA config) Shows you the your server setup configuration', inline=False)
     elif helpType == "mod":
+        embedVar.add_field(name="`z setslowmode [Seconds] [Channel](Optional)`", value="(Moderators only) Changes the channel's slowmode", inline=False)
+        embedVar.add_field(name="`z purge [Number]`", value="(Moderators only) Deletes a number of messages in the channel the command is said in", inline=False)
         embedVar.add_field(name="`z warn [Member] [Reason](Optional)`", value="(Moderators only) Warns a member, once they recieve three warns and they're kicked", inline=False)
         embedVar.add_field(name="`z warns [Member](Optional)`", value="Shows you the all the info on a member's warns", inline=False)
         embedVar.add_field(name="`z pardon [Member]`", value="(Moderators only) Clears a member's warns", inline=False)
@@ -261,18 +263,18 @@ async def configuration(message):
     data = loadSetupData(message.guild)
     welcomeChannel = client.get_channel(data.welcomeChannel)
     lvlUpChannel = client.get_channel(data.lvlUpChannel)
-    if lvlUpChannel == None:
-        lvlUpChannelName = 'None'
-    else:
-        lvlUpChannelName = lvlUpChannel.name
+    # if lvlUpChannel == None:
+    #     lvlUpChannelName = 'None'
+    # else:
+    #     lvlUpChannelName = lvlUpChannel.name
     if welcomeChannel == None:
         welcomeChannelName = 'None'
     else:
         welcomeChannelName = welcomeChannel.name
-    if data.lvlUpMsg == '':
-        lvlUpMsg = 'None'
-    else:
-        lvlUpMsg = data.lvlUpMsg
+    # if data.lvlUpMsg == '':
+    #     lvlUpMsg = 'None'
+    # else:
+    #     lvlUpMsg = data.lvlUpMsg
     if data.welcomeMsg == '':
         welcomeMsg = 'None'
     else:
@@ -283,8 +285,8 @@ async def configuration(message):
     embedVar.set_thumbnail(url=message.guild.icon_url)   
     embedVar.add_field(name="Welcome message", value=welcomeMsg, inline=False)
     embedVar.add_field(name="Welcome channel", value=welcomeChannelName, inline=False)
-    embedVar.add_field(name="Level up message", value=lvlUpMsg, inline=False)
-    embedVar.add_field(name="Level up channel", value=lvlUpChannelName, inline=False)
+    # embedVar.add_field(name="Level up message", value=lvlUpMsg, inline=False)
+    # embedVar.add_field(name="Level up channel", value=lvlUpChannelName, inline=False)
     await message.channel.send(embed=embedVar)    
 
 #Lvls
