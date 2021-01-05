@@ -361,16 +361,17 @@ async def use(message):
     itemName = message.message.content.lower()[6:]
     itemName = ''.join([i for i in itemName if not i.isdigit()])
     amount = tryParseInt(message.message.content.lower()[6:].replace(itemName, ""))
-    if items[itemName].type == ItemType.collectable:
-        await message.channel.send("You can't use that item :/")
-        await message.message.add_reaction(errorReaction)
-        return
 
     if amount[0] == True:
         itemName = itemName[:-1]
         amount = amount[1]
     else:
         amount = 1
+    
+    if items[itemName].type == ItemType.collectable:
+        await message.channel.send("You can't use that item :/")
+        await message.message.add_reaction(errorReaction)
+        return
 
     if amount < 0:
         await message.channel.send("You can't use negative items lol")
