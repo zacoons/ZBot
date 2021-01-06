@@ -220,7 +220,7 @@ async def wave(message, member:discord.Member):
 async def high5(message, member:discord.Member):
     response1 = requests.get(message.author.avatar_url)
     response2 = requests.get(member.avatar_url)
-    imgPath = "{rootPath}\\highfiveBG.png".format(rootPath=os.path.realpath(__file__))
+    imgPath = "{rootPath}\highfiveBG.png".format(rootPath=os.path.dirname(os.path.abspath(__file__)))
     img = Image.open(imgPath)
     member1 = Image.open(BytesIO(response1.content))
     member1Resized = member1.resize((200, 200)) 

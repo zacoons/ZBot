@@ -42,7 +42,9 @@ async def on_message(message):
         if isInt:
             if str(message.author.id) == data.previousAuthor:
                 await message.delete()
-                await giveOneAtATimeError(message.channel)
+                msg = await message.channel.send("One at a time boi")
+                asyncio.sleep(3)
+                await msg.delete()
                 return
 
             if number == data.number + 1:
@@ -51,7 +53,10 @@ async def on_message(message):
                 if number == 50:
                     await message.channel.send("Keep, going! You're on fire ;)")
                     await message.add_reaction('🔥')
-                if number == 69:
+                elif number == 21:
+                    await message.channel.send("What's 9 plus 10")
+                    await message.add_reaction('😏')
+                elif number == 69 or number == 420:
                     await message.channel.send("Hehe")
                     await message.add_reaction('😏')
                 elif number == 100:
